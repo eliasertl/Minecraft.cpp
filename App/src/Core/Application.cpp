@@ -11,10 +11,13 @@ namespace Minecraft::Core {
         Graphics::WindowProps winProps;
         winProps.title = "Minecraft.cpp";
         m_Window = CreateScope<Graphics::Window>(winProps);
+
+        m_GraphicsContext = CreateScope<Graphics::GraphicsContext>();
     }
 
     Application::~Application() {
         LOG_INFO("Shutting down Application");
+        m_GraphicsContext.release();
         m_Window.release();
     }
 
