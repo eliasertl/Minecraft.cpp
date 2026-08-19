@@ -7,6 +7,7 @@ namespace Minecraft::Graphics
 {
     GraphicsContext::GraphicsContext()
     {
+        // Create Instance
         static constexpr auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
         wgpu::InstanceDescriptor instanceDescriptor{
             .requiredFeatureCount = 1,
@@ -19,7 +20,8 @@ namespace Minecraft::Graphics
             LOG_ERROR("Instance Creation failed!");
             return;
         }
-        // Synchronously request the adapter.
+
+        // Create Adapter
         wgpu::RequestAdapterOptions options = {};
         wgpu::Adapter adapter;
 
@@ -54,11 +56,32 @@ namespace Minecraft::Graphics
         LOG_INFO("DeviceID: {:#x}", info.deviceID);
         LOG_INFO("Name: {}", info.device);
         LOG_INFO("Driver description: {}", info.description);
+
+        wgpu::Limits limits{};
+        adapter.GetLimits(&limits);
+
+        // Create Device
+        auto deviceDescriptor = wgpu::DeviceDescriptor{};
+        deviceDescriptor.requiredLimits = &limits;
+        deviceDescriptor.defaultQueue.label = "Default Queue";
+
+        LOG_INFO("Creating wgpu Device");
+        wgpu::Device device = adapter.CreateDevice(&deviceDescriptor);
+        if (device == nullptr)
+        {
+            LOG_ERROR("Device Creation failed!");
+            return;
+        }
+        m_Device = device;
         return;
     }
 
     GraphicsContext::~GraphicsContext()
     {
+        LOG_INFO("Destroying GraphicsContext");
+        m_Device = nullptr;
+        m_Adapter = nullptr;
+        m_Instance = nullptr;
     }
 
     wgpu::Instance GraphicsContext::GetInstance() const

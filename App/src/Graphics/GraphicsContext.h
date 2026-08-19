@@ -13,9 +13,11 @@ namespace Minecraft::Graphics
 
         wgpu::Instance GetInstance() const;
         wgpu::Adapter GetAdapter() const;
+        wgpu::Device GetDevice() const;
 
     private:
         wgpu::Instance m_Instance;
         wgpu::Adapter m_Adapter;
+        wgpu::Device m_Device;
     };
 }
