@@ -17,6 +17,7 @@ namespace Minecraft::Graphics
 
         inline wgpu::Instance GetInstance() const { return m_Instance; }
         inline wgpu::Surface GetSurface() const { return m_Surface; }
+        inline wgpu::TextureFormat GetSurfaceFormat() const { return m_SurfaceFormat; }
         inline wgpu::Adapter GetAdapter() const { return m_Adapter; }
         inline wgpu::Device GetDevice() const { return m_Device; }
         inline wgpu::Queue GetQueue() const { return m_Queue; }
@@ -24,6 +25,7 @@ namespace Minecraft::Graphics
     private:
         wgpu::Instance m_Instance;
         wgpu::Surface m_Surface;
+        wgpu::TextureFormat m_SurfaceFormat;
         wgpu::Adapter m_Adapter;
         wgpu::Device m_Device;
         wgpu::Queue m_Queue;

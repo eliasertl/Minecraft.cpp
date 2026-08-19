@@ -105,6 +105,7 @@ namespace Minecraft::Graphics
         wgpu::SurfaceCapabilities surfaceCapabilities{};
         m_Surface.GetCapabilities(m_Adapter, &surfaceCapabilities);
         surfaceConfig.format = surfaceCapabilities.formats[0];
+        m_SurfaceFormat = surfaceCapabilities.formats[0];
 
         m_Surface.Configure(&surfaceConfig);
         return;
