@@ -26,6 +26,8 @@ namespace Minecraft::Core
 
         m_GraphicsContext = CreateScope<Graphics::GraphicsContext>(*m_Window);
 
+        m_ImGuiContext = CreateScope<Graphics::ImGuiContext>(*m_Window, m_GraphicsContext->GetDevice(), m_GraphicsContext->GetQueue(), m_GraphicsContext->GetSurfaceFormat());
+
         InitBuffers();
         InitPipeline();
     }
@@ -36,6 +38,8 @@ namespace Minecraft::Core
         m_RenderPipeline = nullptr;
         m_VertexBuffer = nullptr;
         m_IndexBuffer = nullptr;
+        m_CameraBindGroup = nullptr;
+        m_ImGuiContext.release();
         m_GraphicsContext.release();
         m_Window.release();
     }
@@ -223,6 +227,8 @@ namespace Minecraft::Core
                 continue;
             }
 
+            m_ImGuiContext->NewFrame();
+
             CameraUniforms cameraUniforms;
             cameraUniforms.viewProjection = m_ViewProjection;
             cameraUniforms.transform = m_Transform;
@@ -251,6 +257,7 @@ namespace Minecraft::Core
             renderPassEncoder.SetIndexBuffer(m_IndexBuffer, wgpu::IndexFormat::Uint16);
             renderPassEncoder.SetBindGroup(0, m_CameraBindGroup);
             renderPassEncoder.DrawIndexed(m_IndexCount, 1, 0, 0, 0);
+            m_ImGuiContext->Render(renderPassEncoder);
             renderPassEncoder.End();
             wgpu::CommandBuffer commands = encoder.Finish();
             m_GraphicsContext->GetDevice().GetQueue().Submit(1, &commands);

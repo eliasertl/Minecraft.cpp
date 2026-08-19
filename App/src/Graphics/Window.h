@@ -25,6 +25,7 @@ namespace Minecraft::Graphics {
 
         inline uint32_t GetWidth() const { return m_Width; }
         inline uint32_t GetHeight() const { return m_Height; }
+        inline GLFWwindow* GetNativeWindow() const { return m_Window; }
 
         wgpu::Surface CreateSurface(wgpu::Instance instance);
     

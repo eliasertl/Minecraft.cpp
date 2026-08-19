@@ -17,6 +17,7 @@ find_package(Threads REQUIRED)
 find_package(Dawn REQUIRED CONFIG)
 target_link_libraries(game PRIVATE
     glfw
+    imgui
     spdlog
     glm
     dawn::webgpu_dawn

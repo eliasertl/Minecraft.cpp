@@ -3,6 +3,7 @@
 #include "Common/Memory.h"
 #include "Graphics/Window.h"
 #include "Graphics/GraphicsContext.h"
+#include "Graphics/ImGuiContext.h"
 
 #include <glm/glm.hpp>
 
@@ -23,6 +24,7 @@ namespace Minecraft::Core
     private:
         Scope<Graphics::Window> m_Window;
         Scope<Graphics::GraphicsContext> m_GraphicsContext;
+        Scope<Graphics::ImGuiContext> m_ImGuiContext;
         wgpu::RenderPipeline m_RenderPipeline;
         wgpu::Buffer m_VertexBuffer;
         wgpu::Buffer m_IndexBuffer;
