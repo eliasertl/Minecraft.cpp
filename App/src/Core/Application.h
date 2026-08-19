@@ -22,6 +22,8 @@ namespace Minecraft::Core {
         Scope<Graphics::GraphicsContext> m_GraphicsContext;
         wgpu::RenderPipeline m_RenderPipeline;
         wgpu::Buffer m_VertexBuffer;
+        wgpu::Buffer m_IndexBuffer;
         uint32_t m_VertexCount;
+        uint32_t m_IndexCount;
     };
 }

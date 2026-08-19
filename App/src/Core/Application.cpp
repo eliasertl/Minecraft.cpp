@@ -28,6 +28,7 @@ namespace Minecraft::Core
         LOG_INFO("Shutting down Application");
         m_RenderPipeline = nullptr;
         m_VertexBuffer = nullptr;
+        m_IndexBuffer = nullptr;
         m_GraphicsContext.release();
         m_Window.release();
     }
@@ -65,7 +66,6 @@ namespace Minecraft::Core
         vertexAttribs[1].format = wgpu::VertexFormat::Float32x2;
         vertexAttribs[1].offset = sizeof(float) * 3;
         vertexAttribs[1].shaderLocation = 1;
-
 
         vertexBufferLayout.attributeCount = vertexAttribs.size();
         vertexBufferLayout.attributes = vertexAttribs.data();
@@ -132,11 +132,12 @@ namespace Minecraft::Core
         };
 
         Vertex vertices[] = {
-            {{0.0f, 0.5f, 0.0f}, {0.0f, 1.0f}},
+            {{0.5f, 0.5f, 0.0f}, {1.0f, 1.0f}},
             {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f}},
-            {{0.5f, -0.5f, 0.0f}, {1.0f, 0.0f}}};
+            {{0.5f, -0.5f, 0.0f}, {1.0f, 0.0f}},
+            {{-0.5f, 0.5f, 0.0f}, {0.0f, 1.0f}}};
 
-        constexpr uint32_t vertexCount = static_cast<uint32_t>(sizeof(vertices) / sizeof(Vertex));
+        m_VertexCount = static_cast<uint32_t>(sizeof(vertices) / sizeof(Vertex));
 
         wgpu::BufferDescriptor vertexBufferDesc = {};
         vertexBufferDesc.size = sizeof(vertices);
@@ -145,6 +146,19 @@ namespace Minecraft::Core
         m_VertexBuffer = m_GraphicsContext->GetDevice().CreateBuffer(&vertexBufferDesc);
 
         m_GraphicsContext->GetQueue().WriteBuffer(m_VertexBuffer, 0, vertices, sizeof(vertices));
+    
+        // Index Buffer
+        uint16_t indices[] = {
+            0, 1, 2,
+            0, 3, 1};
+        m_IndexCount = static_cast<uint32_t>(sizeof(indices) / sizeof(uint16_t));
+        wgpu::BufferDescriptor indexBufferDesc = {};
+        indexBufferDesc.size = sizeof(indices);
+        indexBufferDesc.usage = wgpu::BufferUsage::Index | wgpu::BufferUsage::CopyDst;
+        indexBufferDesc.mappedAtCreation = false;
+        m_IndexBuffer = m_GraphicsContext->GetDevice().CreateBuffer(&indexBufferDesc);
+
+        m_GraphicsContext->GetQueue().WriteBuffer(m_IndexBuffer, 0, indices, sizeof(indices));
     }
 
     void Application::Run()
@@ -181,7 +195,8 @@ namespace Minecraft::Core
             wgpu::RenderPassEncoder renderPassEncoder = encoder.BeginRenderPass(&renderPassDesc);
             renderPassEncoder.SetPipeline(m_RenderPipeline);
             renderPassEncoder.SetVertexBuffer(0, m_VertexBuffer);
-            renderPassEncoder.Draw(3, 1, 0, 0);
+            renderPassEncoder.SetIndexBuffer(m_IndexBuffer, wgpu::IndexFormat::Uint16);
+            renderPassEncoder.DrawIndexed(m_IndexCount, 1, 0, 0, 0);
             renderPassEncoder.End();
             wgpu::CommandBuffer commands = encoder.Finish();
             m_GraphicsContext->GetDevice().GetQueue().Submit(1, &commands);
