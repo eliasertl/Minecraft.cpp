@@ -22,3 +22,8 @@ target_link_libraries(game PRIVATE
 )
 
 set_target_properties(game PROPERTIES OUTPUT_NAME "App")
+add_custom_command(TARGET game POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/Assets
+            $<TARGET_FILE_DIR:game>/assets
+)
