@@ -19,6 +19,7 @@ namespace Minecraft::Core
 
         m_GraphicsContext = CreateScope<Graphics::GraphicsContext>(*m_Window);
 
+        InitBuffers();
         InitPipeline();
     }
 
@@ -26,6 +27,7 @@ namespace Minecraft::Core
     {
         LOG_INFO("Shutting down Application");
         m_RenderPipeline = nullptr;
+        m_VertexBuffer = nullptr;
         m_GraphicsContext.release();
         m_Window.release();
     }
@@ -33,7 +35,7 @@ namespace Minecraft::Core
     void Application::InitPipeline()
     {
         std::string shaderSource = ReadFileToString("assets/shader/main.wgsl");
-        
+
         wgpu::RenderPipelineDescriptor pipelineDesc = {};
         pipelineDesc.nextInChain = nullptr;
 
@@ -46,7 +48,6 @@ namespace Minecraft::Core
         shaderModuleDesc.nextInChain = &shaderCodeDesc;
         wgpu::ShaderModule shaderModule = m_GraphicsContext->GetDevice().CreateShaderModule(&shaderModuleDesc);
 
-
         // Vertex state
         pipelineDesc.vertex.bufferCount = 0;
         pipelineDesc.vertex.buffers = nullptr;
@@ -54,6 +55,21 @@ namespace Minecraft::Core
         pipelineDesc.vertex.entryPoint = "vs_main";
         pipelineDesc.vertex.constantCount = 0;
         pipelineDesc.vertex.constants = nullptr;
+
+
+        wgpu::VertexBufferLayout vertexBufferLayout = {};
+        wgpu::VertexAttribute vertexAttributePosition = {};
+        vertexAttributePosition.format = wgpu::VertexFormat::Float32x3;
+        vertexAttributePosition.offset = 0;
+        vertexAttributePosition.shaderLocation = 0;
+
+        vertexBufferLayout.attributeCount = 1;
+        vertexBufferLayout.attributes = &vertexAttributePosition;
+        vertexBufferLayout.arrayStride = sizeof(float) * 3;
+        vertexBufferLayout.stepMode = wgpu::VertexStepMode::Vertex;
+
+        pipelineDesc.vertex.bufferCount = 1;
+        pipelineDesc.vertex.buffers = &vertexBufferLayout;
 
         // Fragment state
         wgpu::FragmentState fragmentState = {};
@@ -102,6 +118,30 @@ namespace Minecraft::Core
         shaderModule = nullptr;
     }
 
+    void Application::InitBuffers()
+    {
+        // Vertex buffer
+        struct Vertex
+        {
+            float position[3];
+        };
+
+        Vertex vertices[] = {
+            {{0.0f, 0.5f, 0.0f}},
+            {{-0.5f, -0.5f, 0.0f}},
+            {{0.5f, -0.5f, 0.0f}}};
+
+        constexpr uint32_t vertexCount = static_cast<uint32_t>(sizeof(vertices) / sizeof(Vertex));
+
+        wgpu::BufferDescriptor vertexBufferDesc = {};
+        vertexBufferDesc.size = sizeof(vertices);
+        vertexBufferDesc.usage = wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst;
+        vertexBufferDesc.mappedAtCreation = false;
+        m_VertexBuffer = m_GraphicsContext->GetDevice().CreateBuffer(&vertexBufferDesc);
+
+        m_GraphicsContext->GetQueue().WriteBuffer(m_VertexBuffer, 0, vertices, sizeof(vertices));
+    }
+
     void Application::Run()
     {
         LOG_INFO("Running Application");
@@ -135,6 +175,7 @@ namespace Minecraft::Core
             wgpu::CommandEncoder encoder = m_GraphicsContext->GetDevice().CreateCommandEncoder();
             wgpu::RenderPassEncoder renderPassEncoder = encoder.BeginRenderPass(&renderPassDesc);
             renderPassEncoder.SetPipeline(m_RenderPipeline);
+            renderPassEncoder.SetVertexBuffer(0, m_VertexBuffer);
             renderPassEncoder.Draw(3, 1, 0, 0);
             renderPassEncoder.End();
             wgpu::CommandBuffer commands = encoder.Finish();
