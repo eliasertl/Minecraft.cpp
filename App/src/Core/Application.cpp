@@ -56,16 +56,20 @@ namespace Minecraft::Core
         pipelineDesc.vertex.constantCount = 0;
         pipelineDesc.vertex.constants = nullptr;
 
-
         wgpu::VertexBufferLayout vertexBufferLayout = {};
-        wgpu::VertexAttribute vertexAttributePosition = {};
-        vertexAttributePosition.format = wgpu::VertexFormat::Float32x3;
-        vertexAttributePosition.offset = 0;
-        vertexAttributePosition.shaderLocation = 0;
+        std::vector<wgpu::VertexAttribute> vertexAttribs(2);
+        vertexAttribs[0].format = wgpu::VertexFormat::Float32x3;
+        vertexAttribs[0].offset = 0;
+        vertexAttribs[0].shaderLocation = 0;
 
-        vertexBufferLayout.attributeCount = 1;
-        vertexBufferLayout.attributes = &vertexAttributePosition;
-        vertexBufferLayout.arrayStride = sizeof(float) * 3;
+        vertexAttribs[1].format = wgpu::VertexFormat::Float32x2;
+        vertexAttribs[1].offset = sizeof(float) * 3;
+        vertexAttribs[1].shaderLocation = 1;
+
+
+        vertexBufferLayout.attributeCount = vertexAttribs.size();
+        vertexBufferLayout.attributes = vertexAttribs.data();
+        vertexBufferLayout.arrayStride = sizeof(float) * 5;
         vertexBufferLayout.stepMode = wgpu::VertexStepMode::Vertex;
 
         pipelineDesc.vertex.bufferCount = 1;
@@ -124,12 +128,13 @@ namespace Minecraft::Core
         struct Vertex
         {
             float position[3];
+            float uv[2];
         };
 
         Vertex vertices[] = {
-            {{0.0f, 0.5f, 0.0f}},
-            {{-0.5f, -0.5f, 0.0f}},
-            {{0.5f, -0.5f, 0.0f}}};
+            {{0.0f, 0.5f, 0.0f}, {0.0f, 1.0f}},
+            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f}},
+            {{0.5f, -0.5f, 0.0f}, {1.0f, 0.0f}}};
 
         constexpr uint32_t vertexCount = static_cast<uint32_t>(sizeof(vertices) / sizeof(Vertex));
 
