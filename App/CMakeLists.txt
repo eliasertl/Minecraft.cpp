@@ -18,6 +18,7 @@ find_package(Dawn REQUIRED CONFIG)
 target_link_libraries(game PRIVATE
     glfw
     spdlog
+    glm
     dawn::webgpu_dawn
 )
 

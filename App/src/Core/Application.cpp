@@ -3,9 +3,16 @@
 #include "Common/File.h"
 
 #include <stdio.h>
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace Minecraft::Core
 {
+    struct CameraUniforms
+    {
+        glm::mat4 viewProjection;
+        glm::mat4 transform;
+    };
+
     Application::Application()
     {
         Log::Init();
@@ -116,7 +123,38 @@ namespace Minecraft::Core
         pipelineDesc.depthStencil = nullptr;
 
         // Pipeline layout
-        pipelineDesc.layout = nullptr;
+        wgpu::BindGroupLayoutEntry bindingLayout = {};
+        bindingLayout.binding = 0;
+        bindingLayout.visibility = wgpu::ShaderStage::Vertex;
+        bindingLayout.buffer.type = wgpu::BufferBindingType::Uniform;
+        bindingLayout.buffer.minBindingSize = sizeof(CameraUniforms);
+
+        wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc = wgpu::BindGroupLayoutDescriptor{};
+        bindGroupLayoutDesc.entryCount = 1;
+        bindGroupLayoutDesc.entries = &bindingLayout;
+        bindGroupLayoutDesc.nextInChain = nullptr;
+        m_CameraBindGroupLayout = m_GraphicsContext->GetDevice().CreateBindGroupLayout(&bindGroupLayoutDesc);
+
+        wgpu::PipelineLayoutDescriptor pipelineLayoutDesc = {};
+        pipelineLayoutDesc.nextInChain = nullptr;
+        pipelineLayoutDesc.bindGroupLayoutCount = 1;
+        pipelineLayoutDesc.bindGroupLayouts = &m_CameraBindGroupLayout;
+        m_PipelineLayout = m_GraphicsContext->GetDevice().CreatePipelineLayout(&pipelineLayoutDesc);
+        pipelineDesc.layout = m_PipelineLayout;
+
+        wgpu::BindGroupEntry bindGroupEntry = {};
+        bindGroupEntry.binding = 0;
+        bindGroupEntry.buffer = m_CameraUniformBuffer;
+        bindGroupEntry.offset = 0;
+        bindGroupEntry.size = sizeof(CameraUniforms);
+
+        wgpu::BindGroupDescriptor bindGroupDesc = {};
+        bindGroupDesc.layout = m_CameraBindGroupLayout;
+        bindGroupDesc.entryCount = 1;
+        bindGroupDesc.entries = &bindGroupEntry;
+
+        m_CameraBindGroup = m_GraphicsContext->GetDevice().CreateBindGroup(&bindGroupDesc);
+
 
         m_RenderPipeline = m_GraphicsContext->GetDevice().CreateRenderPipeline(&pipelineDesc);
         shaderModule = nullptr;
@@ -146,7 +184,7 @@ namespace Minecraft::Core
         m_VertexBuffer = m_GraphicsContext->GetDevice().CreateBuffer(&vertexBufferDesc);
 
         m_GraphicsContext->GetQueue().WriteBuffer(m_VertexBuffer, 0, vertices, sizeof(vertices));
-    
+
         // Index Buffer
         uint16_t indices[] = {
             0, 1, 2,
@@ -159,6 +197,16 @@ namespace Minecraft::Core
         m_IndexBuffer = m_GraphicsContext->GetDevice().CreateBuffer(&indexBufferDesc);
 
         m_GraphicsContext->GetQueue().WriteBuffer(m_IndexBuffer, 0, indices, sizeof(indices));
+
+        // Camera Uniform Buffer
+        wgpu::BufferDescriptor cameraUniformBufferDesc = {};
+        cameraUniformBufferDesc.size = sizeof(CameraUniforms);
+        cameraUniformBufferDesc.usage = wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst;
+        cameraUniformBufferDesc.mappedAtCreation = false;
+        m_CameraUniformBuffer = m_GraphicsContext->GetDevice().CreateBuffer(&cameraUniformBufferDesc);
+
+        m_Transform = glm::mat4(1.0f);
+        m_ViewProjection = glm::perspective(glm::radians(45.0f), static_cast<float>(m_Window->GetWidth()) / static_cast<float>(m_Window->GetHeight()), 0.1f, 100.0f) * glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     }
 
     void Application::Run()
@@ -174,6 +222,11 @@ namespace Minecraft::Core
                 LOG_ERROR("Failed to acquire next view");
                 continue;
             }
+
+            CameraUniforms cameraUniforms;
+            cameraUniforms.viewProjection = m_ViewProjection;
+            cameraUniforms.transform = m_Transform;
+            m_GraphicsContext->GetQueue().WriteBuffer(m_CameraUniformBuffer, 0, &cameraUniforms, sizeof(CameraUniforms));
 
             wgpu::RenderPassDescriptor renderPassDesc = {};
             renderPassDesc.nextInChain = nullptr;
@@ -196,6 +249,7 @@ namespace Minecraft::Core
             renderPassEncoder.SetPipeline(m_RenderPipeline);
             renderPassEncoder.SetVertexBuffer(0, m_VertexBuffer);
             renderPassEncoder.SetIndexBuffer(m_IndexBuffer, wgpu::IndexFormat::Uint16);
+            renderPassEncoder.SetBindGroup(0, m_CameraBindGroup);
             renderPassEncoder.DrawIndexed(m_IndexCount, 1, 0, 0, 0);
             renderPassEncoder.End();
             wgpu::CommandBuffer commands = encoder.Finish();

@@ -4,7 +4,10 @@
 #include "Graphics/Window.h"
 #include "Graphics/GraphicsContext.h"
 
-namespace Minecraft::Core {
+#include <glm/glm.hpp>
+
+namespace Minecraft::Core
+{
     class Application
     {
     public:
@@ -23,6 +26,14 @@ namespace Minecraft::Core {
         wgpu::RenderPipeline m_RenderPipeline;
         wgpu::Buffer m_VertexBuffer;
         wgpu::Buffer m_IndexBuffer;
+        wgpu::Buffer m_CameraUniformBuffer;
+        wgpu::BindGroup m_CameraBindGroup;
+        wgpu::BindGroupLayout m_CameraBindGroupLayout;
+        wgpu::PipelineLayout m_PipelineLayout;
+
+        glm::mat4 m_Transform;
+        glm::mat4 m_ViewProjection;
+
         uint32_t m_VertexCount;
         uint32_t m_IndexCount;
     };
