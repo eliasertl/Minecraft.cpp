@@ -3,6 +3,7 @@
 #include "Window.h"
 #include <webgpu/webgpu_cpp.h>
 #include <webgpu/webgpu_cpp_print.h>
+#include <utility>
 
 namespace Minecraft::Graphics
 {
@@ -11,6 +12,8 @@ namespace Minecraft::Graphics
     public:
         GraphicsContext(Window& window);
         ~GraphicsContext();
+        
+        std::pair<wgpu::SurfaceTexture, wgpu::TextureView> AcquireNextTexture();
 
         inline wgpu::Instance GetInstance() const { return m_Instance; }
         inline wgpu::Surface GetSurface() const { return m_Surface; }

@@ -26,6 +26,15 @@ namespace Minecraft::Core {
         while(!m_Window->ShouldClose()){
             m_Window->Update();
 
+            auto [texture, view] = m_GraphicsContext->AcquireNextTexture();
+            if (!view) {
+                LOG_ERROR("Failed to acquire next view");
+                continue;
+            }
+
+            view = nullptr;
+            m_GraphicsContext->GetSurface().Present();
+
             m_GraphicsContext->GetDevice().Tick();
         }
     }

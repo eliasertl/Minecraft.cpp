@@ -28,6 +28,15 @@ namespace Minecraft::Graphics
         LOG_INFO("Creating Window {} ({}x{})", props.title, props.width, props.height);
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         m_Window = glfwCreateWindow(props.width, props.height, props.title.c_str(), nullptr, nullptr);
+        glfwSetWindowUserPointer(m_Window, this); 
+        m_Width = props.width;
+        m_Height = props.height;
+
+        glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) {
+            Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
+            win->m_Width = width;
+            win->m_Height = height;
+        });
     }
 
     Window::~Window()

@@ -5,7 +5,7 @@
 
 namespace Minecraft::Graphics
 {
-    GraphicsContext::GraphicsContext(Window& window)
+    GraphicsContext::GraphicsContext(Window &window)
     {
         // Create Instance
         static constexpr auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
@@ -27,22 +27,21 @@ namespace Minecraft::Graphics
         // Create Adapter
         wgpu::RequestAdapterOptions options = {};
         options.compatibleSurface = m_Surface;
-        wgpu::Adapter adapter;
 
-        auto callback = [](wgpu::RequestAdapterStatus status, wgpu::Adapter adapter, wgpu::StringView message, void *userdata)
+        auto callback = [](wgpu::RequestAdapterStatus status, wgpu::Adapter m_Adapter, wgpu::StringView message, void *userdata)
         {
             if (status != wgpu::RequestAdapterStatus::Success)
             {
                 LOG_ERROR("Failed to get an adapter: {}", message);
                 return;
             }
-            *static_cast<wgpu::Adapter *>(userdata) = adapter;
+            *static_cast<wgpu::Adapter *>(userdata) = m_Adapter;
         };
 
         auto callbackMode = wgpu::CallbackMode::WaitAnyOnly;
-        void *userdata = &adapter;
+        void *userdata = &m_Adapter;
         instance.WaitAny(instance.RequestAdapter(&options, callbackMode, callback, userdata), UINT64_MAX);
-        if (adapter == nullptr)
+        if (m_Adapter == nullptr)
         {
             LOG_ERROR("RequestAdapter failed!\n");
             return;
@@ -53,7 +52,7 @@ namespace Minecraft::Graphics
         wgpu::AdapterInfo info{};
         info.nextInChain = &power_props;
 
-        adapter.GetInfo(&info);
+        m_Adapter.GetInfo(&info);
         LOG_INFO("VendorID: {:#x}", info.vendorID);
         LOG_INFO("Vendor: {}", info.vendor);
         LOG_INFO("Architecture: {}", info.architecture);
@@ -62,7 +61,7 @@ namespace Minecraft::Graphics
         LOG_INFO("Driver description: {}", info.description);
 
         wgpu::Limits limits{};
-        adapter.GetLimits(&limits);
+        m_Adapter.GetLimits(&limits);
 
         // Create Device
         auto deviceDescriptor = wgpu::DeviceDescriptor{};
@@ -70,16 +69,15 @@ namespace Minecraft::Graphics
         deviceDescriptor.defaultQueue.label = "Default Queue";
 
         LOG_INFO("Creating wgpu Device");
-        wgpu::Device device = adapter.CreateDevice(&deviceDescriptor);
-        if (device == nullptr)
+        m_Device = m_Adapter.CreateDevice(&deviceDescriptor);
+        if (m_Device == nullptr)
         {
             LOG_ERROR("Device Creation failed!");
             return;
         }
-        m_Device = device;
-        
+
         // Get Queue
-        m_Queue = device.GetQueue();
+        m_Queue = m_Device.GetQueue();
         auto onWorkDone = [](wgpu::QueueWorkDoneStatus status, wgpu::StringView message)
         {
             if (status != wgpu::QueueWorkDoneStatus::Success)
@@ -90,6 +88,25 @@ namespace Minecraft::Graphics
             LOG_INFO("Queue work done callback succeeded!");
         };
         m_Queue.OnSubmittedWorkDone(wgpu::CallbackMode::WaitAnyOnly, onWorkDone);
+
+        // Configure Surface
+        LOG_INFO("Configuring wgpu Surface");
+        wgpu::SurfaceConfiguration surfaceConfig{};
+        surfaceConfig.nextInChain = nullptr;
+        surfaceConfig.device = m_Device;
+        surfaceConfig.width = window.GetWidth();
+        surfaceConfig.height = window.GetHeight();
+        surfaceConfig.viewFormatCount = 0;
+        surfaceConfig.viewFormats = nullptr;
+        surfaceConfig.usage = wgpu::TextureUsage::RenderAttachment;
+        surfaceConfig.presentMode = wgpu::PresentMode::Fifo;
+        surfaceConfig.alphaMode = wgpu::CompositeAlphaMode::Auto;
+
+        wgpu::SurfaceCapabilities surfaceCapabilities{};
+        m_Surface.GetCapabilities(m_Adapter, &surfaceCapabilities);
+        surfaceConfig.format = surfaceCapabilities.formats[0];
+
+        m_Surface.Configure(&surfaceConfig);
         return;
     }
 
@@ -101,6 +118,34 @@ namespace Minecraft::Graphics
         m_Adapter = nullptr;
         m_Instance = nullptr;
         m_Surface.Unconfigure();
-        m_Surface = nullptr;    
+        m_Surface = nullptr;
+    }
+
+    std::pair<wgpu::SurfaceTexture, wgpu::TextureView> GraphicsContext::AcquireNextTexture()
+    {
+        // Get surface texture
+        wgpu::SurfaceTexture surfaceTexture{};
+        m_Surface.GetCurrentTexture(&surfaceTexture);
+        if (surfaceTexture.status != wgpu::SurfaceGetCurrentTextureStatus::SuccessOptimal && surfaceTexture.status != wgpu::SurfaceGetCurrentTextureStatus::SuccessSuboptimal)
+        {
+            LOG_ERROR("Failed to acquire next texture: {}", static_cast<uint32_t>(surfaceTexture.status));
+            return {surfaceTexture, nullptr};
+        }
+
+        // Get texture view
+        wgpu::TextureViewDescriptor viewDesc{};
+        viewDesc.nextInChain = nullptr;
+        viewDesc.label = "Surface Texture View";
+        viewDesc.format = surfaceTexture.texture.GetFormat();
+        viewDesc.dimension = wgpu::TextureViewDimension::e2D;
+        viewDesc.baseMipLevel = 0;
+        viewDesc.mipLevelCount = 1;
+        viewDesc.baseArrayLayer = 0;
+        viewDesc.arrayLayerCount = 1;
+        viewDesc.aspect = wgpu::TextureAspect::All;
+
+        wgpu::TextureView textureView = surfaceTexture.texture.CreateView(&viewDesc);
+
+        return {surfaceTexture, textureView};
     }
 }

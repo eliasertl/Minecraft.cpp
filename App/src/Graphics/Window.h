@@ -23,9 +23,13 @@ namespace Minecraft::Graphics {
         void Update();
         void Maximize();
 
+        inline uint32_t GetWidth() const { return m_Width; }
+        inline uint32_t GetHeight() const { return m_Height; }
+
         wgpu::Surface CreateSurface(wgpu::Instance instance);
     
     private:
         GLFWwindow* m_Window;
+        uint32_t m_Width, m_Height;
     };
 }
