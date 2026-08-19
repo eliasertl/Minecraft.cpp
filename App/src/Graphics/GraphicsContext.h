@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Window.h"
 #include <webgpu/webgpu_cpp.h>
 #include <webgpu/webgpu_cpp_print.h>
 
@@ -8,16 +9,20 @@ namespace Minecraft::Graphics
     class GraphicsContext
     {
     public:
-        GraphicsContext();
+        GraphicsContext(Window& window);
         ~GraphicsContext();
 
-        wgpu::Instance GetInstance() const;
-        wgpu::Adapter GetAdapter() const;
-        wgpu::Device GetDevice() const;
+        inline wgpu::Instance GetInstance() const { return m_Instance; }
+        inline wgpu::Surface GetSurface() const { return m_Surface; }
+        inline wgpu::Adapter GetAdapter() const { return m_Adapter; }
+        inline wgpu::Device GetDevice() const { return m_Device; }
+        inline wgpu::Queue GetQueue() const { return m_Queue; }
 
     private:
         wgpu::Instance m_Instance;
+        wgpu::Surface m_Surface;
         wgpu::Adapter m_Adapter;
         wgpu::Device m_Device;
+        wgpu::Queue m_Queue;
     };
 }

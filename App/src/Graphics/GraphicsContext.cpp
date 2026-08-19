@@ -5,7 +5,7 @@
 
 namespace Minecraft::Graphics
 {
-    GraphicsContext::GraphicsContext()
+    GraphicsContext::GraphicsContext(Window& window)
     {
         // Create Instance
         static constexpr auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
@@ -21,8 +21,12 @@ namespace Minecraft::Graphics
             return;
         }
 
+        // Create Surface
+        m_Surface = window.CreateSurface(instance);
+
         // Create Adapter
         wgpu::RequestAdapterOptions options = {};
+        options.compatibleSurface = m_Surface;
         wgpu::Adapter adapter;
 
         auto callback = [](wgpu::RequestAdapterStatus status, wgpu::Adapter adapter, wgpu::StringView message, void *userdata)
@@ -73,24 +77,30 @@ namespace Minecraft::Graphics
             return;
         }
         m_Device = device;
+        
+        // Get Queue
+        m_Queue = device.GetQueue();
+        auto onWorkDone = [](wgpu::QueueWorkDoneStatus status, wgpu::StringView message)
+        {
+            if (status != wgpu::QueueWorkDoneStatus::Success)
+            {
+                LOG_ERROR("Queue work done callback failed: {}", message);
+                return;
+            }
+            LOG_INFO("Queue work done callback succeeded!");
+        };
+        m_Queue.OnSubmittedWorkDone(wgpu::CallbackMode::WaitAnyOnly, onWorkDone);
         return;
     }
 
     GraphicsContext::~GraphicsContext()
     {
         LOG_INFO("Destroying GraphicsContext");
+        m_Queue = nullptr;
         m_Device = nullptr;
         m_Adapter = nullptr;
         m_Instance = nullptr;
-    }
-
-    wgpu::Instance GraphicsContext::GetInstance() const
-    {
-        return m_Instance;
-    }
-
-    wgpu::Adapter GraphicsContext::GetAdapter() const
-    {
-        return m_Adapter;
+        m_Surface.Unconfigure();
+        m_Surface = nullptr;    
     }
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <webgpu/webgpu_cpp.h>
 #include <string>
 
 struct GLFWwindow;
@@ -21,6 +22,8 @@ namespace Minecraft::Graphics {
 
         void Update();
         void Maximize();
+
+        wgpu::Surface CreateSurface(wgpu::Instance instance);
     
     private:
         GLFWwindow* m_Window;

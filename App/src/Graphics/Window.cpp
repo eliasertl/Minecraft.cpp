@@ -2,35 +2,69 @@
 #include "Core/Logger.h"
 
 #include <glfw/glfw3.h>
+#if defined(_WIN32)
+    #define GLFW_EXPOSE_NATIVE_WIN32
+    #include <Windows.h>
+    #include <glfw/glfw3native.h>
+#endif
 
-namespace Minecraft::Graphics {
+namespace Minecraft::Graphics
+{
     bool isGlfwInitialized = false;
 
-    Window::Window(WindowProps props){
-        if(!isGlfwInitialized){
+    Window::Window(WindowProps props)
+    {
+        if (!isGlfwInitialized)
+        {
             LOG_INFO("Initializing GLFW");
-            glfwInit();
+            if (!glfwInit())
+            {
+                LOG_ERROR("Failed to initialize GLFW");
+                return;
+            }
             isGlfwInitialized = true;
         }
 
         LOG_INFO("Creating Window {} ({}x{})", props.title, props.width, props.height);
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         m_Window = glfwCreateWindow(props.width, props.height, props.title.c_str(), nullptr, nullptr);
     }
 
-    Window::~Window(){
+    Window::~Window()
+    {
         LOG_INFO("Destroying Window");
         glfwDestroyWindow(m_Window);
+        glfwTerminate();
     }
 
-    bool Window::ShouldClose(){
+    bool Window::ShouldClose()
+    {
         return glfwWindowShouldClose(m_Window);
     }
 
-    void Window::Maximize(){
+    void Window::Maximize()
+    {
         glfwMaximizeWindow(m_Window);
     }
 
-    void Window::Update(){
+    void Window::Update()
+    {
         glfwPollEvents();
+    }
+
+    wgpu::Surface Window::CreateSurface(wgpu::Instance instance)
+    {
+        LOG_INFO("Creating Surface for Window");
+#ifdef _WIN32
+        wgpu::SurfaceSourceWindowsHWND surfaceSource = {};
+        surfaceSource.hwnd = glfwGetWin32Window(m_Window);
+        surfaceSource.hinstance = GetModuleHandle(nullptr);
+
+        wgpu::SurfaceDescriptor desc = {};
+        desc.nextInChain =
+            reinterpret_cast<wgpu::ChainedStruct *>(&surfaceSource);
+
+        return instance.CreateSurface(&desc).Get();
+#endif
     }
 }

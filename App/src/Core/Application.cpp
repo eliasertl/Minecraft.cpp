@@ -12,7 +12,7 @@ namespace Minecraft::Core {
         winProps.title = "Minecraft.cpp";
         m_Window = CreateScope<Graphics::Window>(winProps);
 
-        m_GraphicsContext = CreateScope<Graphics::GraphicsContext>();
+        m_GraphicsContext = CreateScope<Graphics::GraphicsContext>(*m_Window);
     }
 
     Application::~Application() {
@@ -25,6 +25,8 @@ namespace Minecraft::Core {
         LOG_INFO("Running Application");
         while(!m_Window->ShouldClose()){
             m_Window->Update();
+
+            m_GraphicsContext->GetDevice().Tick();
         }
     }
 }
