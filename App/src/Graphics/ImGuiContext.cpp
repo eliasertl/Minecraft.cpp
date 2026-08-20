@@ -3,19 +3,24 @@
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_wgpu.h>
+#include <GLFW/glfw3.h>
 
 namespace Minecraft::Graphics
 {
-    ImGuiContext::ImGuiContext(Window& window, wgpu::Device device, wgpu::Queue queue, wgpu::TextureFormat surfaceFormat)
+    ImGuiContext::ImGuiContext(Window &window, wgpu::Device device, wgpu::Queue queue, wgpu::TextureFormat surfaceFormat)
     {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO &io = ImGui::GetIO();
         (void)io;
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; 
-        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; 
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+        io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
         ImGui::StyleColorsDark();
+        ImGuiStyle &style = ImGui::GetStyle();
+        float main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor());
+        style.ScaleAllSizes(main_scale);
+        style.FontScaleDpi = main_scale;
         ImGui_ImplGlfw_InitForOther(window.GetNativeWindow(), true);
 
         ImGui_ImplWGPU_InitInfo init_info = {};

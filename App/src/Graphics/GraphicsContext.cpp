@@ -6,6 +6,7 @@
 namespace Minecraft::Graphics
 {
     GraphicsContext::GraphicsContext(Window &window)
+        : m_Window(window)
     {
         // Create Instance
         static constexpr auto kTimedWaitAny = wgpu::InstanceFeatureName::TimedWaitAny;
@@ -22,7 +23,7 @@ namespace Minecraft::Graphics
         }
 
         // Create Surface
-        m_Surface = window.CreateSurface(instance);
+        m_Surface = m_Window.CreateSurface(instance);
 
         // Create Adapter
         wgpu::RequestAdapterOptions options = {};
@@ -67,6 +68,16 @@ namespace Minecraft::Graphics
         auto deviceDescriptor = wgpu::DeviceDescriptor{};
         deviceDescriptor.requiredLimits = &limits;
         deviceDescriptor.defaultQueue.label = "Default Queue";
+        deviceDescriptor.SetUncapturedErrorCallback(
+            [](wgpu::Device const &device,
+               wgpu::ErrorType type,
+               wgpu::StringView message)
+            {
+                LOG_ERROR(
+                    "Dawn uncaptured error [{}]: {}",
+                    static_cast<uint32_t>(type),
+                    message);
+            });
 
         LOG_INFO("Creating wgpu Device");
         m_Device = m_Adapter.CreateDevice(&deviceDescriptor);
@@ -94,8 +105,8 @@ namespace Minecraft::Graphics
         wgpu::SurfaceConfiguration surfaceConfig{};
         surfaceConfig.nextInChain = nullptr;
         surfaceConfig.device = m_Device;
-        surfaceConfig.width = window.GetWidth();
-        surfaceConfig.height = window.GetHeight();
+        surfaceConfig.width = m_Window.GetWidth();
+        surfaceConfig.height = m_Window.GetHeight();
         surfaceConfig.viewFormatCount = 0;
         surfaceConfig.viewFormats = nullptr;
         surfaceConfig.usage = wgpu::TextureUsage::RenderAttachment;
@@ -108,12 +119,31 @@ namespace Minecraft::Graphics
         m_SurfaceFormat = surfaceCapabilities.formats[0];
 
         m_Surface.Configure(&surfaceConfig);
+
+        // Create Depth Texture
+        LOG_INFO("Creating Depth Texture");
+        m_DepthFormat = wgpu::TextureFormat::Depth24Plus;
+
+        wgpu::TextureDescriptor depthTextureDesc{};
+        depthTextureDesc.nextInChain = nullptr;
+        depthTextureDesc.label = "Depth Texture";
+        depthTextureDesc.size.width = m_Window.GetWidth();
+        depthTextureDesc.size.height = m_Window.GetHeight();
+        depthTextureDesc.size.depthOrArrayLayers = 1;
+        depthTextureDesc.usage = wgpu::TextureUsage::RenderAttachment;
+        depthTextureDesc.format = m_DepthFormat;
+        wgpu::Texture depthTexture = m_Device.CreateTexture(&depthTextureDesc);
+
+        m_DepthTextureView = depthTexture.CreateView();
+        depthTexture = nullptr;
+
         return;
     }
 
     GraphicsContext::~GraphicsContext()
     {
         LOG_INFO("Destroying GraphicsContext");
+        m_DepthTextureView = nullptr;
         m_Queue = nullptr;
         m_Device = nullptr;
         m_Adapter = nullptr;
@@ -127,6 +157,52 @@ namespace Minecraft::Graphics
         // Get surface texture
         wgpu::SurfaceTexture surfaceTexture{};
         m_Surface.GetCurrentTexture(&surfaceTexture);
+
+        if (surfaceTexture.status != wgpu::SurfaceGetCurrentTextureStatus::Outdated || surfaceTexture.status != wgpu::SurfaceGetCurrentTextureStatus::Lost)
+        {
+            // resize surface
+            wgpu::SurfaceConfiguration surfaceConfig{};
+            surfaceConfig.nextInChain = nullptr;
+            surfaceConfig.device = m_Device;
+            surfaceConfig.width = m_Window.GetWidth();
+            surfaceConfig.height = m_Window.GetHeight();
+            surfaceConfig.viewFormatCount = 0;
+            surfaceConfig.viewFormats = nullptr;
+            surfaceConfig.usage = wgpu::TextureUsage::RenderAttachment;
+            surfaceConfig.presentMode = wgpu::PresentMode::Fifo;
+            surfaceConfig.alphaMode = wgpu::CompositeAlphaMode::Auto;
+
+            wgpu::SurfaceCapabilities surfaceCapabilities{};
+            m_Surface.GetCapabilities(m_Adapter, &surfaceCapabilities);
+            surfaceConfig.format = surfaceCapabilities.formats[0];
+            m_Surface.Configure(&surfaceConfig);
+
+            m_DepthTextureView = nullptr;
+
+            wgpu::TextureDescriptor depthTextureDesc{};
+            depthTextureDesc.nextInChain = nullptr;
+            depthTextureDesc.label = "Depth Texture";
+            depthTextureDesc.size.width = m_Window.GetWidth();
+            depthTextureDesc.size.height = m_Window.GetHeight();
+            depthTextureDesc.size.depthOrArrayLayers = 1;
+            depthTextureDesc.mipLevelCount = 1;
+            depthTextureDesc.sampleCount = 1;
+            depthTextureDesc.dimension = wgpu::TextureDimension::e2D;
+            depthTextureDesc.usage = wgpu::TextureUsage::RenderAttachment;
+            depthTextureDesc.format = m_DepthFormat;
+
+            wgpu::Texture depthTexture = m_Device.CreateTexture(&depthTextureDesc);
+
+            if (depthTexture == nullptr)
+            {
+                LOG_ERROR("Failed to create resized depth texture");
+            }
+
+            m_DepthTextureView = depthTexture.CreateView();
+
+            m_Surface.GetCurrentTexture(&surfaceTexture);
+        }
+
         if (surfaceTexture.status != wgpu::SurfaceGetCurrentTextureStatus::SuccessOptimal && surfaceTexture.status != wgpu::SurfaceGetCurrentTextureStatus::SuccessSuboptimal)
         {
             LOG_ERROR("Failed to acquire next texture: {}", static_cast<uint32_t>(surfaceTexture.status));

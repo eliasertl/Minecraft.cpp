@@ -3,6 +3,7 @@
 #include "Common/File.h"
 
 #include <stdio.h>
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Minecraft::Core
@@ -124,7 +125,11 @@ namespace Minecraft::Core
         pipelineDesc.multisample.alphaToCoverageEnabled = false;
 
         // Depth stencil state
-        pipelineDesc.depthStencil = nullptr;
+        wgpu::DepthStencilState depthStencilState = {};
+        depthStencilState.format = m_GraphicsContext->GetDepthFormat();
+        depthStencilState.depthWriteEnabled = true;
+        depthStencilState.depthCompare = wgpu::CompareFunction::Less;
+        pipelineDesc.depthStencil = &depthStencilState;
 
         // Pipeline layout
         wgpu::BindGroupLayoutEntry bindingLayout = {};
@@ -159,9 +164,13 @@ namespace Minecraft::Core
 
         m_CameraBindGroup = m_GraphicsContext->GetDevice().CreateBindGroup(&bindGroupDesc);
 
-
         m_RenderPipeline = m_GraphicsContext->GetDevice().CreateRenderPipeline(&pipelineDesc);
         shaderModule = nullptr;
+
+        if (!m_RenderPipeline)
+        {
+            LOG_ERROR("Failed to create render pipeline!");
+        }
     }
 
     void Application::InitBuffers()
@@ -174,10 +183,42 @@ namespace Minecraft::Core
         };
 
         Vertex vertices[] = {
-            {{0.5f, 0.5f, 0.0f}, {1.0f, 1.0f}},
-            {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f}},
-            {{0.5f, -0.5f, 0.0f}, {1.0f, 0.0f}},
-            {{-0.5f, 0.5f, 0.0f}, {0.0f, 1.0f}}};
+            // Front  (+Z)
+            {{0.5f, 0.5f, 0.5f}, {1.0f, 1.0f}},
+            {{-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f}},
+            {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}},
+            {{-0.5f, 0.5f, 0.5f}, {0.0f, 1.0f}},
+
+            // Back   (-Z)
+            {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}},
+            {{0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}},
+            {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}},
+            {{0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}},
+
+            // Right  (+X)
+            {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}},
+            {{0.5f, -0.5f, 0.5f}, {0.0f, 0.0f}},
+            {{0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}},
+            {{0.5f, 0.5f, 0.5f}, {0.0f, 1.0f}},
+
+            // Left   (-X)
+            {{-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f}},
+            {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}},
+            {{-0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}},
+            {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}},
+
+            // Top    (+Y)
+            {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}},
+            {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f}},
+            {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}},
+            {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}},
+
+            // Bottom (-Y)
+            {{0.5f, -0.5f, 0.5f}, {1.0f, 1.0f}},
+            {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}},
+            {{0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}},
+            {{-0.5f, -0.5f, 0.5f}, {0.0f, 1.0f}},
+        };
 
         m_VertexCount = static_cast<uint32_t>(sizeof(vertices) / sizeof(Vertex));
 
@@ -189,10 +230,20 @@ namespace Minecraft::Core
 
         m_GraphicsContext->GetQueue().WriteBuffer(m_VertexBuffer, 0, vertices, sizeof(vertices));
 
-        // Index Buffer
-        uint16_t indices[] = {
-            0, 1, 2,
-            0, 3, 1};
+        // Index Buffer: same 0,1,2, 0,3,1 pattern per face, offset by 4 vertices each face.
+        uint16_t indices[6 * 6];
+        for (uint16_t face = 0; face < 6; ++face)
+        {
+            uint16_t base = static_cast<uint16_t>(face * 4);
+            uint16_t *f = &indices[face * 6];
+            f[0] = base + 0;
+            f[1] = base + 1;
+            f[2] = base + 2;
+            f[3] = base + 0;
+            f[4] = base + 3;
+            f[5] = base + 1;
+        }
+
         m_IndexCount = static_cast<uint32_t>(sizeof(indices) / sizeof(uint16_t));
         wgpu::BufferDescriptor indexBufferDesc = {};
         indexBufferDesc.size = sizeof(indices);
@@ -227,7 +278,7 @@ namespace Minecraft::Core
                 continue;
             }
 
-            m_ImGuiContext->NewFrame();
+            // m_ImGuiContext->NewFrame();
 
             CameraUniforms cameraUniforms;
             cameraUniforms.viewProjection = m_ViewProjection;
@@ -250,6 +301,14 @@ namespace Minecraft::Core
             renderPassDesc.depthStencilAttachment = nullptr;
             renderPassDesc.timestampWrites = nullptr;
 
+            wgpu::RenderPassDepthStencilAttachment depthStencilAttachment = {};
+            depthStencilAttachment.view = m_GraphicsContext->GetDepthTextureView();
+            depthStencilAttachment.depthLoadOp = wgpu::LoadOp::Clear;
+            depthStencilAttachment.depthStoreOp = wgpu::StoreOp::Store;
+            depthStencilAttachment.depthClearValue = 1.0f;
+
+            renderPassDesc.depthStencilAttachment = &depthStencilAttachment;
+
             wgpu::CommandEncoder encoder = m_GraphicsContext->GetDevice().CreateCommandEncoder();
             wgpu::RenderPassEncoder renderPassEncoder = encoder.BeginRenderPass(&renderPassDesc);
             renderPassEncoder.SetPipeline(m_RenderPipeline);
@@ -257,7 +316,7 @@ namespace Minecraft::Core
             renderPassEncoder.SetIndexBuffer(m_IndexBuffer, wgpu::IndexFormat::Uint16);
             renderPassEncoder.SetBindGroup(0, m_CameraBindGroup);
             renderPassEncoder.DrawIndexed(m_IndexCount, 1, 0, 0, 0);
-            m_ImGuiContext->Render(renderPassEncoder);
+            // m_ImGuiContext->Render(renderPassEncoder); // TODO: Seperate Render Pass
             renderPassEncoder.End();
             wgpu::CommandBuffer commands = encoder.Finish();
             m_GraphicsContext->GetDevice().GetQueue().Submit(1, &commands);
