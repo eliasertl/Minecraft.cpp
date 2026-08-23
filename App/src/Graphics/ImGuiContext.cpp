@@ -7,7 +7,7 @@
 
 namespace Minecraft::Graphics
 {
-    ImGuiContext::ImGuiContext(Window &window, wgpu::Device device, wgpu::Queue queue, wgpu::TextureFormat surfaceFormat)
+    ImGuiContext::ImGuiContext(Window &window, wgpu::Device device, wgpu::Queue queue, wgpu::TextureFormat surfaceFormat, wgpu::TextureFormat depthStencilFormat)
     {
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
@@ -21,13 +21,22 @@ namespace Minecraft::Graphics
         float main_scale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor());
         style.ScaleAllSizes(main_scale);
         style.FontScaleDpi = main_scale;
+
+        ImVec4* colors = style.Colors;
+        colors[ImGuiCol_WindowBg] = ImVec4(0.1f, 0.1f, 0.1f, 0.2f);
+        colors[ImGuiCol_Border] = ImVec4(0.2f, 0.2f, 0.2f, 0.5f);
+        colors[ImGuiCol_TitleBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.5f);
+        colors[ImGuiCol_TitleBgActive] = ImVec4(0.0f, 0.0f, 0.0f, 0.5f);
+        colors[ImGuiCol_MenuBarBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+        colors[ImGuiCol_ScrollbarBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.0f);
+
         ImGui_ImplGlfw_InitForOther(window.GetNativeWindow(), true);
 
         ImGui_ImplWGPU_InitInfo init_info = {};
         init_info.Device = device.Get();
         init_info.NumFramesInFlight = 3;
         init_info.RenderTargetFormat = static_cast<WGPUTextureFormat>(surfaceFormat);
-        init_info.DepthStencilFormat = WGPUTextureFormat_Undefined;
+        init_info.DepthStencilFormat = static_cast<WGPUTextureFormat>(depthStencilFormat);
         ImGui_ImplWGPU_Init(&init_info);
     }
 
