@@ -58,6 +58,8 @@ namespace Minecraft::Graphics
 
     void Window::Update()
     {
+        m_DeltaTime = glfwGetTime() - m_LastFrameTime;
+        m_LastFrameTime = glfwGetTime();
         glfwPollEvents();
     }
 

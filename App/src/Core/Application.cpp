@@ -1,10 +1,12 @@
 #include "Application.h"
 #include "Logger.h"
+#include "Common/Input.h"
 
 #include <stdio.h>
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
 #include <random>
+#include <imgui.h>
 
 namespace Minecraft::Core
 {
@@ -18,10 +20,13 @@ namespace Minecraft::Core
         winProps.width = 1280;
         winProps.height = 720;
         m_Window = CreateScope<Graphics::Window>(winProps);
-
+        m_Window->Maximize();
         m_GraphicsContext = CreateScope<Graphics::GraphicsContext>(*m_Window);
-
+        m_Camera = CreateScope<Data::Camera>(*m_Window);
+        m_Camera->SetViewSize(static_cast<float>(m_Window->GetWidth()), static_cast<float>(m_Window->GetHeight()));
+        m_Camera->SetTransform(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, Data::CHUNK_LENGTH * 1.5f)));
         m_ImGuiContext = CreateScope<Graphics::ImGuiContext>(*m_Window, m_GraphicsContext->GetDevice(), m_GraphicsContext->GetQueue(), m_GraphicsContext->GetSurfaceFormat(), m_GraphicsContext->GetDepthFormat());
+        Input::Init(m_Window.get());
 
         m_TestChunk = CreateScope<Data::Chunk>();
         auto gen = std::bind(std::uniform_int_distribution<>(0,1),std::default_random_engine());
@@ -56,16 +61,20 @@ namespace Minecraft::Core
         LOG_INFO("Running Application");
         while (!m_Window->ShouldClose())
         {
+            float deltaTime = m_Window->GetDeltaTime();
+            Input::Update();
             m_Window->Update();
+            m_Camera->Update(deltaTime);
+            m_ImGuiContext->NewFrame();
+
+            ImGui::Begin("Camera Info");
+            ImGui::Text("FOV: %.2f", glm::degrees(m_Camera->GetFOV()));
+            ImGui::Text("Width: %.2f, Height: %.2f", m_Camera->GetViewSize().x, m_Camera->GetViewSize().y);
+            ImGui::Text("Position: (%.2f, %.2f, %.2f)", m_Camera->GetTransform()[3][0], m_Camera->GetTransform()[3][1], m_Camera->GetTransform()[3][2]);
+            ImGui::End();
+
 
             auto [texture, view] = m_GraphicsContext->AcquireNextTexture();
-            if (!view)
-            {
-                LOG_ERROR("Failed to acquire next view");
-                continue;
-            }
-
-            m_ImGuiContext->NewFrame();
 
             wgpu::RenderPassDescriptor renderPassDesc = {};
             renderPassDesc.nextInChain = nullptr;
@@ -94,8 +103,8 @@ namespace Minecraft::Core
             wgpu::CommandEncoder encoder = m_GraphicsContext->GetDevice().CreateCommandEncoder();
             wgpu::RenderPassEncoder renderPassEncoder = encoder.BeginRenderPass(&renderPassDesc);
             std::vector<Graphics::ChunkRenderer*> renderers = { m_TestChunkRenderer.get() };
-            m_ChunkRenderManager->Render(renderers, renderPassEncoder);
-            m_ImGuiContext->Render(renderPassEncoder); // TODO: Seperate Render Pass
+            m_ChunkRenderManager->Render(renderers, *m_Camera, renderPassEncoder);
+            m_ImGuiContext->Render(renderPassEncoder);
             renderPassEncoder.End();
             wgpu::CommandBuffer commands = encoder.Finish();
             m_GraphicsContext->GetDevice().GetQueue().Submit(1, &commands);

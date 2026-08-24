@@ -2,6 +2,7 @@
 
 #include "ChunkRenderer.h"
 #include "GraphicsContext.h"
+#include "Data/Camera.h"
 #include <vector>
 #include <webgpu/webgpu_cpp.h>
 #include <glm/glm.hpp>
@@ -14,7 +15,7 @@ namespace Minecraft::Graphics
         ChunkRenderManager(GraphicsContext& graphicsContext);
         ~ChunkRenderManager();
 
-        void Render(std::vector<ChunkRenderer *> &renderers, wgpu::RenderPassEncoder encoder);
+        void Render(std::vector<ChunkRenderer *> &renderers, const Data::Camera& camera, wgpu::RenderPassEncoder encoder);
 
     private:
         void InitPipeline();

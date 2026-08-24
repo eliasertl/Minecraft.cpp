@@ -26,6 +26,7 @@ namespace Minecraft::Data
         void setBlock(uint16_t x, uint16_t y, uint16_t z, BlockID id, BlockMeta meta);
         void markDirty() { m_IsDirty = true; }
         void markClean() { m_IsDirty = false; }
+        bool isDirty() const { return m_IsDirty; }
 
     private:
         Block* m_Blocks;

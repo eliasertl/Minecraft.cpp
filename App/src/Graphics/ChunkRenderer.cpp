@@ -47,6 +47,11 @@ namespace Minecraft::Graphics
 
     void ChunkRenderer::Render(wgpu::RenderPassEncoder encoder)
     {
+        if(m_Chunk.isDirty())
+        {
+            BuildMesh();
+            m_Chunk.markClean();
+        }
         encoder.SetVertexBuffer(0, m_VertexBuffer);
         encoder.SetIndexBuffer(m_IndexBuffer, wgpu::IndexFormat::Uint16);
         encoder.DrawIndexed(m_IndexCount, 1, 0, 0, 0);

@@ -52,8 +52,6 @@ namespace Minecraft::Graphics
         ImGui_ImplWGPU_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-
-        ImGui::ShowDemoWindow();
     }
 
     void ImGuiContext::Render(wgpu::RenderPassEncoder encoder)

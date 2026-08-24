@@ -9,7 +9,6 @@ namespace Minecraft::Graphics
     struct CameraUniforms
     {
         glm::mat4 viewProjection;
-        glm::mat4 transform;
     };
 
     ChunkRenderManager::ChunkRenderManager(GraphicsContext &graphicsContext)
@@ -166,11 +165,10 @@ namespace Minecraft::Graphics
         m_ViewProjection = glm::perspective(glm::radians(45.0f), static_cast<float>(m_GraphicsContext.GetWindow().GetWidth()) / static_cast<float>(m_GraphicsContext.GetWindow().GetHeight()), 0.1f, 100.0f) * glm::lookAt(glm::vec3(distance), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     }
 
-    void ChunkRenderManager::Render(std::vector<ChunkRenderer *> &renderers, wgpu::RenderPassEncoder encoder)
+    void ChunkRenderManager::Render(std::vector<ChunkRenderer *> &renderers, const Data::Camera& camera, wgpu::RenderPassEncoder encoder)
     {
         CameraUniforms cameraUniforms;
-        cameraUniforms.viewProjection = m_ViewProjection;
-        cameraUniforms.transform = m_Transform;
+        cameraUniforms.viewProjection = camera.GetViewProjection();
         m_GraphicsContext.GetQueue().WriteBuffer(m_CameraUniformBuffer, 0, &cameraUniforms, sizeof(CameraUniforms));
 
         encoder.SetPipeline(m_RenderPipeline);

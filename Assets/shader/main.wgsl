@@ -1,6 +1,5 @@
 struct CameraUniforms {
     viewProjection: mat4x4f,
-    transform: mat4x4f,
 };
 
 @group(0) @binding(0)
@@ -19,7 +18,7 @@ struct VertexOutput {
 @vertex
 fn vs_main(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
-    out.clip_position = uCam.viewProjection * uCam.transform * vec4f(in.position, 1.0);
+    out.clip_position = uCam.viewProjection * vec4f(in.position, 1.0);
     out.uv = in.uv;
     return out;
 }
