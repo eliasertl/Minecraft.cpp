@@ -18,13 +18,16 @@ namespace Minecraft::Graphics
 
     private:
         void BuildMesh();
+        void InitBuffers();
 
     private:
         GraphicsContext &m_GraphicsContext;
         Data::Chunk &m_Chunk;
         wgpu::Buffer m_VertexBuffer;
         wgpu::Buffer m_IndexBuffer;
-        uint32_t m_VertexCount;
-        uint32_t m_IndexCount;
+        uint32_t m_VertexCount = 0;
+        uint32_t m_AllocatedVertexCount = 0;
+        uint32_t m_IndexCount = 0;
+        uint32_t m_AllocatedIndexCount = 0;
     };
 }

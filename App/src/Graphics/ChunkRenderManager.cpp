@@ -162,7 +162,7 @@ namespace Minecraft::Graphics
         m_CameraUniformBuffer = m_GraphicsContext.GetDevice().CreateBuffer(&cameraUniformBufferDesc);
 
         m_Transform = glm::mat4(1.0f);
-        float distance = Data::CHUNK_LENGTH + 3.0f;
+        float distance = Data::CHUNK_LENGTH * 1.5f;
         m_ViewProjection = glm::perspective(glm::radians(45.0f), static_cast<float>(m_GraphicsContext.GetWindow().GetWidth()) / static_cast<float>(m_GraphicsContext.GetWindow().GetHeight()), 0.1f, 100.0f) * glm::lookAt(glm::vec3(distance), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     }
 
