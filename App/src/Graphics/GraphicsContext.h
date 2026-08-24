@@ -15,6 +15,7 @@ namespace Minecraft::Graphics
         
         std::pair<wgpu::SurfaceTexture, wgpu::TextureView> AcquireNextTexture();
 
+        inline Window& GetWindow() const { return m_Window; }
         inline wgpu::Instance GetInstance() const { return m_Instance; }
         inline wgpu::Surface GetSurface() const { return m_Surface; }
         inline wgpu::TextureFormat GetSurfaceFormat() const { return m_SurfaceFormat; }

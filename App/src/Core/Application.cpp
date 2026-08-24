@@ -1,19 +1,13 @@
 #include "Application.h"
 #include "Logger.h"
-#include "Common/File.h"
 
 #include <stdio.h>
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
+#include <random>
 
 namespace Minecraft::Core
 {
-    struct CameraUniforms
-    {
-        glm::mat4 viewProjection;
-        glm::mat4 transform;
-    };
-
     Application::Application()
     {
         Log::Init();
@@ -29,239 +23,32 @@ namespace Minecraft::Core
 
         m_ImGuiContext = CreateScope<Graphics::ImGuiContext>(*m_Window, m_GraphicsContext->GetDevice(), m_GraphicsContext->GetQueue(), m_GraphicsContext->GetSurfaceFormat(), m_GraphicsContext->GetDepthFormat());
 
-        InitBuffers();
-        InitPipeline();
+        m_TestChunk = CreateScope<Data::Chunk>();
+        auto gen = std::bind(std::uniform_int_distribution<>(0,1),std::default_random_engine());
+        for(uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
+        {
+            for(uint16_t y = 0; y < Data::CHUNK_LENGTH; y++)
+            {
+                for(uint16_t z = 0; z < Data::CHUNK_LENGTH; z++)
+                {
+                    m_TestChunk->setBlock(x, y, z, gen(), 0);
+                }
+            }
+        }
+        m_TestChunk->markDirty();
+
+        m_TestChunkRenderer = CreateScope<Graphics::ChunkRenderer>(*m_TestChunk, *m_GraphicsContext);
+        m_ChunkRenderManager = CreateScope<Graphics::ChunkRenderManager>(*m_GraphicsContext);
     }
 
     Application::~Application()
     {
         LOG_INFO("Shutting down Application");
-        m_RenderPipeline = nullptr;
-        m_VertexBuffer = nullptr;
-        m_IndexBuffer = nullptr;
-        m_CameraBindGroup = nullptr;
+        m_TestChunkRenderer.release();
+        m_TestChunk.release();
         m_ImGuiContext.release();
         m_GraphicsContext.release();
         m_Window.release();
-    }
-
-    void Application::InitPipeline()
-    {
-        std::string shaderSource = ReadFileToString("assets/shader/main.wgsl");
-
-        wgpu::RenderPipelineDescriptor pipelineDesc = {};
-        pipelineDesc.nextInChain = nullptr;
-
-        // Shader Module
-        wgpu::ShaderModuleDescriptor shaderModuleDesc = {};
-        wgpu::ShaderSourceWGSL shaderCodeDesc = {};
-        shaderCodeDesc.code = shaderSource.c_str();
-        shaderCodeDesc.nextInChain = nullptr;
-        shaderCodeDesc.sType = wgpu::SType::ShaderSourceWGSL;
-        shaderModuleDesc.nextInChain = &shaderCodeDesc;
-        wgpu::ShaderModule shaderModule = m_GraphicsContext->GetDevice().CreateShaderModule(&shaderModuleDesc);
-
-        // Vertex state
-        pipelineDesc.vertex.bufferCount = 0;
-        pipelineDesc.vertex.buffers = nullptr;
-        pipelineDesc.vertex.module = shaderModule;
-        pipelineDesc.vertex.entryPoint = "vs_main";
-        pipelineDesc.vertex.constantCount = 0;
-        pipelineDesc.vertex.constants = nullptr;
-
-        wgpu::VertexBufferLayout vertexBufferLayout = {};
-        std::vector<wgpu::VertexAttribute> vertexAttribs(2);
-        vertexAttribs[0].format = wgpu::VertexFormat::Float32x3;
-        vertexAttribs[0].offset = 0;
-        vertexAttribs[0].shaderLocation = 0;
-
-        vertexAttribs[1].format = wgpu::VertexFormat::Float32x2;
-        vertexAttribs[1].offset = sizeof(float) * 3;
-        vertexAttribs[1].shaderLocation = 1;
-
-        vertexBufferLayout.attributeCount = vertexAttribs.size();
-        vertexBufferLayout.attributes = vertexAttribs.data();
-        vertexBufferLayout.arrayStride = sizeof(float) * 5;
-        vertexBufferLayout.stepMode = wgpu::VertexStepMode::Vertex;
-
-        pipelineDesc.vertex.bufferCount = 1;
-        pipelineDesc.vertex.buffers = &vertexBufferLayout;
-
-        // Fragment state
-        wgpu::FragmentState fragmentState = {};
-        fragmentState.module = shaderModule;
-        fragmentState.entryPoint = "fs_main";
-        fragmentState.constantCount = 0;
-        fragmentState.constants = nullptr;
-
-        // Blend state
-        wgpu::BlendState blendState = {};
-        blendState.color.srcFactor = wgpu::BlendFactor::SrcAlpha;
-        blendState.color.dstFactor = wgpu::BlendFactor::OneMinusSrcAlpha;
-        blendState.color.operation = wgpu::BlendOperation::Add;
-        blendState.alpha.srcFactor = wgpu::BlendFactor::Zero;
-        blendState.alpha.dstFactor = wgpu::BlendFactor::One;
-        blendState.alpha.operation = wgpu::BlendOperation::Add;
-
-        wgpu::ColorTargetState colorTargetState = {};
-        colorTargetState.format = m_GraphicsContext->GetSurfaceFormat();
-        colorTargetState.blend = &blendState;
-        colorTargetState.writeMask = wgpu::ColorWriteMask::All;
-
-        fragmentState.targetCount = 1;
-        fragmentState.targets = &colorTargetState;
-
-        pipelineDesc.fragment = &fragmentState;
-
-        // Primitive state
-        pipelineDesc.primitive.topology = wgpu::PrimitiveTopology::TriangleList;
-        pipelineDesc.primitive.stripIndexFormat = wgpu::IndexFormat::Undefined;
-        pipelineDesc.primitive.frontFace = wgpu::FrontFace::CCW;
-        pipelineDesc.primitive.cullMode = wgpu::CullMode::None;
-
-        // Multisample state
-        pipelineDesc.multisample.count = 1;
-        pipelineDesc.multisample.mask = ~0u;
-        pipelineDesc.multisample.alphaToCoverageEnabled = false;
-
-        // Depth stencil state
-        wgpu::DepthStencilState depthStencilState = {};
-        depthStencilState.format = m_GraphicsContext->GetDepthFormat();
-        depthStencilState.depthWriteEnabled = true;
-        depthStencilState.depthCompare = wgpu::CompareFunction::Less;
-        pipelineDesc.depthStencil = &depthStencilState;
-
-        // Pipeline layout
-        wgpu::BindGroupLayoutEntry bindingLayout = {};
-        bindingLayout.binding = 0;
-        bindingLayout.visibility = wgpu::ShaderStage::Vertex;
-        bindingLayout.buffer.type = wgpu::BufferBindingType::Uniform;
-        bindingLayout.buffer.minBindingSize = sizeof(CameraUniforms);
-
-        wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc = wgpu::BindGroupLayoutDescriptor{};
-        bindGroupLayoutDesc.entryCount = 1;
-        bindGroupLayoutDesc.entries = &bindingLayout;
-        bindGroupLayoutDesc.nextInChain = nullptr;
-        m_CameraBindGroupLayout = m_GraphicsContext->GetDevice().CreateBindGroupLayout(&bindGroupLayoutDesc);
-
-        wgpu::PipelineLayoutDescriptor pipelineLayoutDesc = {};
-        pipelineLayoutDesc.nextInChain = nullptr;
-        pipelineLayoutDesc.bindGroupLayoutCount = 1;
-        pipelineLayoutDesc.bindGroupLayouts = &m_CameraBindGroupLayout;
-        m_PipelineLayout = m_GraphicsContext->GetDevice().CreatePipelineLayout(&pipelineLayoutDesc);
-        pipelineDesc.layout = m_PipelineLayout;
-
-        wgpu::BindGroupEntry bindGroupEntry = {};
-        bindGroupEntry.binding = 0;
-        bindGroupEntry.buffer = m_CameraUniformBuffer;
-        bindGroupEntry.offset = 0;
-        bindGroupEntry.size = sizeof(CameraUniforms);
-
-        wgpu::BindGroupDescriptor bindGroupDesc = {};
-        bindGroupDesc.layout = m_CameraBindGroupLayout;
-        bindGroupDesc.entryCount = 1;
-        bindGroupDesc.entries = &bindGroupEntry;
-
-        m_CameraBindGroup = m_GraphicsContext->GetDevice().CreateBindGroup(&bindGroupDesc);
-
-        m_RenderPipeline = m_GraphicsContext->GetDevice().CreateRenderPipeline(&pipelineDesc);
-        shaderModule = nullptr;
-
-        if (!m_RenderPipeline)
-        {
-            LOG_ERROR("Failed to create render pipeline!");
-        }
-    }
-
-    void Application::InitBuffers()
-    {
-        // Vertex buffer
-        struct Vertex
-        {
-            float position[3];
-            float uv[2];
-        };
-
-        Vertex vertices[] = {
-            // Front  (+Z)
-            {{0.5f, 0.5f, 0.5f}, {1.0f, 1.0f}},
-            {{-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f}},
-            {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}},
-            {{-0.5f, 0.5f, 0.5f}, {0.0f, 1.0f}},
-
-            // Back   (-Z)
-            {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}},
-            {{0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}},
-            {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}},
-            {{0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}},
-
-            // Right  (+X)
-            {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}},
-            {{0.5f, -0.5f, 0.5f}, {0.0f, 0.0f}},
-            {{0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}},
-            {{0.5f, 0.5f, 0.5f}, {0.0f, 1.0f}},
-
-            // Left   (-X)
-            {{-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f}},
-            {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}},
-            {{-0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}},
-            {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}},
-
-            // Top    (+Y)
-            {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}},
-            {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f}},
-            {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}},
-            {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}},
-
-            // Bottom (-Y)
-            {{0.5f, -0.5f, 0.5f}, {1.0f, 1.0f}},
-            {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}},
-            {{0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}},
-            {{-0.5f, -0.5f, 0.5f}, {0.0f, 1.0f}},
-        };
-
-        m_VertexCount = static_cast<uint32_t>(sizeof(vertices) / sizeof(Vertex));
-
-        wgpu::BufferDescriptor vertexBufferDesc = {};
-        vertexBufferDesc.size = sizeof(vertices);
-        vertexBufferDesc.usage = wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst;
-        vertexBufferDesc.mappedAtCreation = false;
-        m_VertexBuffer = m_GraphicsContext->GetDevice().CreateBuffer(&vertexBufferDesc);
-
-        m_GraphicsContext->GetQueue().WriteBuffer(m_VertexBuffer, 0, vertices, sizeof(vertices));
-
-        // Index Buffer: same 0,1,2, 0,3,1 pattern per face, offset by 4 vertices each face.
-        uint16_t indices[6 * 6];
-        for (uint16_t face = 0; face < 6; ++face)
-        {
-            uint16_t base = static_cast<uint16_t>(face * 4);
-            uint16_t *f = &indices[face * 6];
-            f[0] = base + 0;
-            f[1] = base + 1;
-            f[2] = base + 2;
-            f[3] = base + 0;
-            f[4] = base + 3;
-            f[5] = base + 1;
-        }
-
-        m_IndexCount = static_cast<uint32_t>(sizeof(indices) / sizeof(uint16_t));
-        wgpu::BufferDescriptor indexBufferDesc = {};
-        indexBufferDesc.size = sizeof(indices);
-        indexBufferDesc.usage = wgpu::BufferUsage::Index | wgpu::BufferUsage::CopyDst;
-        indexBufferDesc.mappedAtCreation = false;
-        m_IndexBuffer = m_GraphicsContext->GetDevice().CreateBuffer(&indexBufferDesc);
-
-        m_GraphicsContext->GetQueue().WriteBuffer(m_IndexBuffer, 0, indices, sizeof(indices));
-
-        // Camera Uniform Buffer
-        wgpu::BufferDescriptor cameraUniformBufferDesc = {};
-        cameraUniformBufferDesc.size = sizeof(CameraUniforms);
-        cameraUniformBufferDesc.usage = wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst;
-        cameraUniformBufferDesc.mappedAtCreation = false;
-        m_CameraUniformBuffer = m_GraphicsContext->GetDevice().CreateBuffer(&cameraUniformBufferDesc);
-
-        m_Transform = glm::mat4(1.0f);
-        m_ViewProjection = glm::perspective(glm::radians(45.0f), static_cast<float>(m_Window->GetWidth()) / static_cast<float>(m_Window->GetHeight()), 0.1f, 100.0f) * glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     }
 
     void Application::Run()
@@ -279,11 +66,6 @@ namespace Minecraft::Core
             }
 
             m_ImGuiContext->NewFrame();
-
-            CameraUniforms cameraUniforms;
-            cameraUniforms.viewProjection = m_ViewProjection;
-            cameraUniforms.transform = m_Transform;
-            m_GraphicsContext->GetQueue().WriteBuffer(m_CameraUniformBuffer, 0, &cameraUniforms, sizeof(CameraUniforms));
 
             wgpu::RenderPassDescriptor renderPassDesc = {};
             renderPassDesc.nextInChain = nullptr;
@@ -311,11 +93,8 @@ namespace Minecraft::Core
 
             wgpu::CommandEncoder encoder = m_GraphicsContext->GetDevice().CreateCommandEncoder();
             wgpu::RenderPassEncoder renderPassEncoder = encoder.BeginRenderPass(&renderPassDesc);
-            renderPassEncoder.SetPipeline(m_RenderPipeline);
-            renderPassEncoder.SetVertexBuffer(0, m_VertexBuffer);
-            renderPassEncoder.SetIndexBuffer(m_IndexBuffer, wgpu::IndexFormat::Uint16);
-            renderPassEncoder.SetBindGroup(0, m_CameraBindGroup);
-            renderPassEncoder.DrawIndexed(m_IndexCount, 1, 0, 0, 0);
+            std::vector<Graphics::ChunkRenderer*> renderers = { m_TestChunkRenderer.get() };
+            m_ChunkRenderManager->Render(renderers, renderPassEncoder);
             m_ImGuiContext->Render(renderPassEncoder); // TODO: Seperate Render Pass
             renderPassEncoder.End();
             wgpu::CommandBuffer commands = encoder.Finish();

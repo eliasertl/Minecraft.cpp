@@ -4,6 +4,9 @@
 #include "Graphics/Window.h"
 #include "Graphics/GraphicsContext.h"
 #include "Graphics/ImGuiContext.h"
+#include "Graphics/ChunkRenderer.h"
+#include "Graphics/ChunkRenderManager.h"
+#include "Data/Chunk.h"
 
 #include <glm/glm.hpp>
 
@@ -18,25 +21,11 @@ namespace Minecraft::Core
         void Run();
 
     private:
-        void InitPipeline();
-        void InitBuffers();
-
-    private:
         Scope<Graphics::Window> m_Window;
         Scope<Graphics::GraphicsContext> m_GraphicsContext;
         Scope<Graphics::ImGuiContext> m_ImGuiContext;
-        wgpu::RenderPipeline m_RenderPipeline;
-        wgpu::Buffer m_VertexBuffer;
-        wgpu::Buffer m_IndexBuffer;
-        wgpu::Buffer m_CameraUniformBuffer;
-        wgpu::BindGroup m_CameraBindGroup;
-        wgpu::BindGroupLayout m_CameraBindGroupLayout;
-        wgpu::PipelineLayout m_PipelineLayout;
-
-        glm::mat4 m_Transform;
-        glm::mat4 m_ViewProjection;
-
-        uint32_t m_VertexCount;
-        uint32_t m_IndexCount;
+        Scope<Data::Chunk> m_TestChunk;
+        Scope<Graphics::ChunkRenderer> m_TestChunkRenderer;
+        Scope<Graphics::ChunkRenderManager> m_ChunkRenderManager;
     };
 }
