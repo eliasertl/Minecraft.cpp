@@ -22,6 +22,7 @@ target_link_libraries(game PRIVATE
     imgui
     spdlog
     glm
+    stb
     dawn::webgpu_dawn
     Tracy::TracyClient
 )

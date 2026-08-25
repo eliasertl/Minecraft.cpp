@@ -21,3 +21,7 @@ target_include_directories(imgui PUBLIC imgui imgui/backends)
 target_link_libraries(imgui PUBLIC glfw dawn::webgpu_dawn)
 target_compile_definitions(imgui PUBLIC IMGUI_IMPL_WEBGPU_BACKEND_DAWN)
 set_target_properties(imgui PROPERTIES ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/imgui)
+
+# stb (stb_image.h)
+add_library(stb INTERFACE)
+target_include_directories(stb INTERFACE stb)

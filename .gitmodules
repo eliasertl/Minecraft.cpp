@@ -13,3 +13,6 @@
 [submodule "Vendor/tracy"]
 	path = Vendor/tracy
 	url = https://github.com/wolfpld/tracy
+[submodule "Vendor/stb"]
+	path = Vendor/stb
+	url = https://github.com/nothings/stb/

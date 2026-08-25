@@ -6,6 +6,8 @@
 #include "Graphics/ImGuiContext.h"
 #include "Graphics/ChunkRenderer.h"
 #include "Graphics/ChunkRenderManager.h"
+#include "Graphics/BlockAtlas.h"
+#include "Data/BlockTypes.h"
 #include "Data/Chunk.h"
 #include "Data/Camera.h"
 
@@ -44,5 +46,6 @@ namespace Minecraft::Core
         Scope<Data::Camera> m_Camera;
         Scope<Graphics::ChunkRenderer> m_TestChunkRenderer;
         Scope<Graphics::ChunkRenderManager> m_ChunkRenderManager;
+        Scope<Graphics::BlockAtlas> m_BlockAtlas;
     };
 }

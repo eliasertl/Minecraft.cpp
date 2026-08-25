@@ -41,9 +41,17 @@ namespace Minecraft::Core
         m_ImGuiContext = CreateScope<Graphics::ImGuiContext>(*m_Window, m_GraphicsContext->GetDevice(), m_GraphicsContext->GetQueue(), m_GraphicsContext->GetSurfaceFormat(), m_GraphicsContext->GetDepthFormat());
         Input::Init(m_Window.get());
 
+
+        Data::BlockTypes::registerBlockType({"Cobblestone", "default:cobblestone", "assets/textures/cobblestone.png"});
+        Data::BlockTypes::registerBlockType({"Dirt", "default:dirt", "assets/textures/dirt.png"});
+        Data::BlockTypes::registerBlockType({"Planks", "default:planks", "assets/textures/planks.png"});
+        Data::BlockTypes::registerBlockType({"Test Block", "default:test", "assets/textures/test.png"});
+        Data::BlockTypes::finishRegistration();
+
+        m_BlockAtlas = CreateScope<Graphics::BlockAtlas>(*m_GraphicsContext, Data::BlockTypes::getRegisteredBlockTypes());
+
         m_TestChunk = CreateScope<Data::Chunk>();
         SetTestChunkRandom();
-
         m_TestChunkRenderer = CreateScope<Graphics::ChunkRenderer>(*m_TestChunk, *m_GraphicsContext);
         m_ChunkRenderManager = CreateScope<Graphics::ChunkRenderManager>(*m_GraphicsContext);
     }
@@ -117,6 +125,7 @@ namespace Minecraft::Core
         LOG_INFO("Shutting down Application");
         m_TestChunkRenderer.release();
         m_TestChunk.release();
+        m_BlockAtlas.release();
         m_ImGuiContext.release();
         m_GraphicsContext.release();
         m_Window.release();
@@ -144,11 +153,16 @@ namespace Minecraft::Core
         ImGui::Text("FOV: %.2f", glm::degrees(m_Camera->GetFOV()));
         ImGui::Text("Width: %.2f, Height: %.2f", m_Camera->GetViewSize().x, m_Camera->GetViewSize().y);
         ImGui::Text("Position: (%.2f, %.2f, %.2f)", m_Camera->GetTransform()[3][0], m_Camera->GetTransform()[3][1], m_Camera->GetTransform()[3][2]);
-        ImGui::Separator();
+        ImGui::SeparatorText("Stats");
         ImGui::Text("FPS: %.2f", 1.0f / m_SmoothedDeltaTime);
         ImGui::Text("Frame Time: %.2f ms", m_SmoothedDeltaTime * 1000.0f);
         ImGui::Text("Window Size: %d x %d", m_Window->GetWidth(), m_Window->GetHeight());
-        ImGui::Separator();
+        ImGui::SeparatorText("Block Atlas");
+        ImGui::Text("Registered Block Types: %d", Data::BlockTypes::getRegisteredBlockTypes().size());
+        ImGui::Text("Atlas Size: %dx%d", m_BlockAtlas->GetWidth(), m_BlockAtlas->GetHeight());
+        glm::vec2 aspectAdjustedSize = glm::vec2(256.0f, 256.0f * (static_cast<float>(m_BlockAtlas->GetHeight()) / static_cast<float>(m_BlockAtlas->GetWidth())));
+        ImGui::Image(reinterpret_cast<ImTextureID>(m_BlockAtlas->GetTextureView().Get()), {aspectAdjustedSize.x, aspectAdjustedSize.y});
+        ImGui::SeparatorText("Controls");
 #ifdef MC_DEBUG
         ImGui::Checkbox("Render Wireframe", &s_ApplicationSettings.renderWireframe);
 #endif
@@ -187,7 +201,7 @@ namespace Minecraft::Core
             renderPassColorAttachment.resolveTarget = nullptr;
             renderPassColorAttachment.loadOp = wgpu::LoadOp::Clear;
             renderPassColorAttachment.storeOp = wgpu::StoreOp::Store;
-            renderPassColorAttachment.clearValue = wgpu::Color{0.1, 0.2, 0.8, 1.0};
+            renderPassColorAttachment.clearValue = wgpu::Color{0.0, 0.0, 0.0, 1.0};
             renderPassColorAttachment.depthSlice = wgpu::kDepthSliceUndefined;
 
             renderPassDesc.colorAttachmentCount = 1;
