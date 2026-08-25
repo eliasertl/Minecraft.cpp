@@ -14,6 +14,7 @@ namespace Minecraft::Graphics
         ~GraphicsContext();
         
         std::pair<wgpu::SurfaceTexture, wgpu::TextureView> AcquireNextTexture();
+        void FrameEnd();
 
         inline Window& GetWindow() const { return m_Window; }
         inline wgpu::Instance GetInstance() const { return m_Instance; }
@@ -27,6 +28,7 @@ namespace Minecraft::Graphics
 
     private:
         Window& m_Window;
+        uint32_t m_SurfaceWidth = 0, m_SurfaceHeight = 0;
         wgpu::Instance m_Instance;
         wgpu::Surface m_Surface;
         wgpu::TextureFormat m_SurfaceFormat;

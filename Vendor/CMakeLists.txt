@@ -1,6 +1,8 @@
 add_subdirectory(glfw ${CMAKE_BINARY_DIR}/glfw)
 add_subdirectory(spdlog ${CMAKE_BINARY_DIR}/spdlog)
 add_subdirectory(glm ${CMAKE_BINARY_DIR}/glm)
+option( TRACY_ENABLE "" ON)
+add_subdirectory(tracy ${CMAKE_BINARY_DIR}/tracy)
 
 # imgui
 set(THREADS_PREFER_PTHREAD_FLAG ON)

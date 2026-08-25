@@ -6,7 +6,9 @@ file(GLOB_RECURSE GAME_SRC CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c"
 )
 
-add_executable(game ${GAME_SRC})
+add_executable(game ${GAME_SRC} 
+    "${CMAKE_SOURCE_DIR}/Vendor/tracy/public/TracyClient.cpp"
+)
 
 target_include_directories(game PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -21,6 +23,7 @@ target_link_libraries(game PRIVATE
     spdlog
     glm
     dawn::webgpu_dawn
+    Tracy::TracyClient
 )
 
 set_target_properties(game PROPERTIES OUTPUT_NAME "App")

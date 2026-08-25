@@ -41,7 +41,7 @@ namespace Minecraft::Graphics {
     private:
         GLFWwindow* m_Window;
         uint32_t m_Width, m_Height;
-        double m_LastFrameTime;
-        double m_DeltaTime;
+        double m_LastFrameTime = 0.16f;
+        double m_DeltaTime = 0.16f;
     };
 }

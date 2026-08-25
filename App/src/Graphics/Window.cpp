@@ -7,6 +7,7 @@
     #include <Windows.h>
     #include <glfw/glfw3native.h>
 #endif
+#include <tracy/Tracy.hpp>
 
 namespace Minecraft::Graphics
 {
@@ -53,6 +54,7 @@ namespace Minecraft::Graphics
 
     void Window::Maximize()
     {
+        ZoneScoped;
         glfwMaximizeWindow(m_Window);
     }
 
@@ -74,6 +76,7 @@ namespace Minecraft::Graphics
 
     void Window::Update()
     {
+        ZoneScoped;
         m_DeltaTime = glfwGetTime() - m_LastFrameTime;
         m_LastFrameTime = glfwGetTime();
         glfwPollEvents();

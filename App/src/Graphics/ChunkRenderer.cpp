@@ -1,6 +1,8 @@
 #include "ChunkRenderer.h"
 #include "Core/Logger.h"
 
+#include <tracy/Tracy.hpp>
+
 namespace Minecraft::Graphics
 {
     ChunkRenderer::ChunkRenderer(Data::Chunk &chunk, GraphicsContext &graphicsContext)
@@ -59,6 +61,7 @@ namespace Minecraft::Graphics
 
     void ChunkRenderer::Render(wgpu::RenderPassEncoder encoder)
     {
+        ZoneScoped;
         encoder.PushDebugGroup("ChunkRenderer::Render");
         if (m_Chunk.isDirty())
         {
@@ -73,6 +76,7 @@ namespace Minecraft::Graphics
 
     void ChunkRenderer::RenderWireframe(wgpu::RenderPassEncoder encoder)
     {
+        ZoneScoped;
         encoder.PushDebugGroup("ChunkRenderer::RenderWireframe");
         if (m_Chunk.isDirty())
         {
@@ -87,6 +91,7 @@ namespace Minecraft::Graphics
 
     void ChunkRenderer::BuildMesh()
     {
+        ZoneScoped;
         std::vector<Vertex> vertices;
         std::vector<uint32_t> indices;
         std::vector<uint32_t> wireFrameIndices;

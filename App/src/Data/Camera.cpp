@@ -3,6 +3,7 @@
 #include "Core/Logger.h"
 #include "Core/Application.h"
 
+#include <tracy/Tracy.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Minecraft::Data
@@ -19,6 +20,7 @@ namespace Minecraft::Data
 
     void Camera::Update(float deltaTime)
     {
+        ZoneScoped;
         if (m_Window.GetWidth() != m_Width || m_Window.GetHeight() != m_Height)
         {
             SetViewSize(static_cast<float>(m_Window.GetWidth()), static_cast<float>(m_Window.GetHeight()));

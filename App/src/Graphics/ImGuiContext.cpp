@@ -4,6 +4,7 @@
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_wgpu.h>
 #include <GLFW/glfw3.h>
+#include <tracy/Tracy.hpp>
 
 namespace Minecraft::Graphics
 {
@@ -49,6 +50,7 @@ namespace Minecraft::Graphics
 
     void ImGuiContext::NewFrame()
     {
+        ZoneScoped;
         ImGui_ImplWGPU_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
@@ -56,6 +58,7 @@ namespace Minecraft::Graphics
 
     void ImGuiContext::Render(wgpu::RenderPassEncoder encoder)
     {
+        ZoneScoped;
         ImGui::Render();
         ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), encoder.Get());
     }

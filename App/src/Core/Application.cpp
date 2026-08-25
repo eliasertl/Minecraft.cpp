@@ -1,24 +1,26 @@
 #include "Application.h"
 #include "Logger.h"
 #include "Common/Input.h"
+#include "Graphics/GraphicsProfiling.h"
 
 #include <stdio.h>
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include <glm/gtc/matrix_transform.hpp>
 #include <random>
 #include <imgui.h>
+#include <tracy/Tracy.hpp>
 
 namespace Minecraft::Core
 {
     struct ApplicationSettings
     {
-        #ifdef MC_DEBUG
+#ifdef MC_DEBUG
         bool renderWireframe = false;
-        #endif
+#endif
     };
 
     static ApplicationSettings s_ApplicationSettings;
-    Application* Application::s_Instance = nullptr;
+    Application *Application::s_Instance = nullptr;
 
     Application::Application()
     {
@@ -122,7 +124,13 @@ namespace Minecraft::Core
 
     void Application::OnFrameStart()
     {
+        ZoneScoped;
+
         float deltaTime = m_Window->GetDeltaTime();
+
+        constexpr float smoothing = 0.1f;
+        m_SmoothedDeltaTime += (deltaTime - m_SmoothedDeltaTime) * smoothing;
+
         Input::Update();
         m_Window->Update();
         m_Camera->Update(deltaTime);
@@ -131,18 +139,19 @@ namespace Minecraft::Core
 
     void Application::OnUI(float deltaTime)
     {
+        ZoneScoped;
         ImGui::Begin("Info");
         ImGui::Text("FOV: %.2f", glm::degrees(m_Camera->GetFOV()));
         ImGui::Text("Width: %.2f, Height: %.2f", m_Camera->GetViewSize().x, m_Camera->GetViewSize().y);
         ImGui::Text("Position: (%.2f, %.2f, %.2f)", m_Camera->GetTransform()[3][0], m_Camera->GetTransform()[3][1], m_Camera->GetTransform()[3][2]);
         ImGui::Separator();
-        ImGui::Text("FPS: %.2f", 1.0f / deltaTime);
-        ImGui::Text("Frame Time: %.2f ms", deltaTime * 1000.0f);
+        ImGui::Text("FPS: %.2f", 1.0f / m_SmoothedDeltaTime);
+        ImGui::Text("Frame Time: %.2f ms", m_SmoothedDeltaTime * 1000.0f);
         ImGui::Text("Window Size: %d x %d", m_Window->GetWidth(), m_Window->GetHeight());
         ImGui::Separator();
-        #ifdef MC_DEBUG
+#ifdef MC_DEBUG
         ImGui::Checkbox("Render Wireframe", &s_ApplicationSettings.renderWireframe);
-        #endif
+#endif
         if (ImGui::Button("Random Chunk"))
         {
             SetTestChunkRandom();
@@ -164,59 +173,73 @@ namespace Minecraft::Core
 
     void Application::OnUpdate(float deltaTime)
     {
+        ZoneScoped;
         auto [texture, view] = m_GraphicsContext->AcquireNextTexture();
 
         wgpu::RenderPassDescriptor renderPassDesc = {};
-        renderPassDesc.nextInChain = nullptr;
-
         wgpu::RenderPassColorAttachment renderPassColorAttachment = {};
-        renderPassColorAttachment.view = view;
-        renderPassColorAttachment.resolveTarget = nullptr;
-        renderPassColorAttachment.loadOp = wgpu::LoadOp::Clear;
-        renderPassColorAttachment.storeOp = wgpu::StoreOp::Store;
-        renderPassColorAttachment.clearValue = wgpu::Color{0.1, 0.2, 0.8, 1.0};
-        renderPassColorAttachment.depthSlice = wgpu::kDepthSliceUndefined;
-
-        renderPassDesc.colorAttachmentCount = 1;
-        renderPassDesc.colorAttachments = &renderPassColorAttachment;
-        renderPassDesc.depthStencilAttachment = nullptr;
-        renderPassDesc.timestampWrites = nullptr;
-
         wgpu::RenderPassDepthStencilAttachment depthStencilAttachment = {};
-        depthStencilAttachment.view = m_GraphicsContext->GetDepthTextureView();
-        depthStencilAttachment.depthLoadOp = wgpu::LoadOp::Clear;
-        depthStencilAttachment.depthStoreOp = wgpu::StoreOp::Store;
-        depthStencilAttachment.depthClearValue = 1.0f;
+        {
+            ZoneScopedN("Create Render Pass Descriptor");
+            renderPassDesc.nextInChain = nullptr;
 
-        renderPassDesc.depthStencilAttachment = &depthStencilAttachment;
+            renderPassColorAttachment.view = view;
+            renderPassColorAttachment.resolveTarget = nullptr;
+            renderPassColorAttachment.loadOp = wgpu::LoadOp::Clear;
+            renderPassColorAttachment.storeOp = wgpu::StoreOp::Store;
+            renderPassColorAttachment.clearValue = wgpu::Color{0.1, 0.2, 0.8, 1.0};
+            renderPassColorAttachment.depthSlice = wgpu::kDepthSliceUndefined;
 
-        wgpu::CommandEncoder encoder = m_GraphicsContext->GetDevice().CreateCommandEncoder();
-        wgpu::RenderPassEncoder renderPassEncoder = encoder.BeginRenderPass(&renderPassDesc);
-        std::vector<Graphics::ChunkRenderer *> renderers = {m_TestChunkRenderer.get()};
+            renderPassDesc.colorAttachmentCount = 1;
+            renderPassDesc.colorAttachments = &renderPassColorAttachment;
+            renderPassDesc.depthStencilAttachment = nullptr;
+            renderPassDesc.timestampWrites = nullptr;
+
+            depthStencilAttachment.view = m_GraphicsContext->GetDepthTextureView();
+            depthStencilAttachment.depthLoadOp = wgpu::LoadOp::Clear;
+            depthStencilAttachment.depthStoreOp = wgpu::StoreOp::Store;
+            depthStencilAttachment.depthClearValue = 1.0f;
+
+            renderPassDesc.depthStencilAttachment = &depthStencilAttachment;
+        }
+
+        wgpu::CommandEncoder encoder;
+        {
+            ZoneScopedN("Create Command Encoder");
+            encoder = m_GraphicsContext->GetDevice().CreateCommandEncoder();
+        }
+        {
+            TracyGPUZoneN(encoder, renderPassDesc, "Render Pass");
+            wgpu::RenderPassEncoder renderPassEncoder = encoder.BeginRenderPass(&renderPassDesc);
+            std::vector<Graphics::ChunkRenderer *> renderers = {m_TestChunkRenderer.get()};
 #ifdef MC_DEBUG
-        if (s_ApplicationSettings.renderWireframe)
-        {
-            m_ChunkRenderManager->RenderWireframe(renderers, *m_Camera, renderPassEncoder);
-        }
-        else
-        {
-            m_ChunkRenderManager->Render(renderers, *m_Camera, renderPassEncoder);
-        }
+            if (s_ApplicationSettings.renderWireframe)
+            {
+                m_ChunkRenderManager->RenderWireframe(renderers, *m_Camera, renderPassEncoder);
+            }
+            else
+            {
+                m_ChunkRenderManager->Render(renderers, *m_Camera, renderPassEncoder);
+            }
 #else
-m_ChunkRenderManager->Render(renderers, *m_Camera, renderPassEncoder);
+            m_ChunkRenderManager->Render(renderers, *m_Camera, renderPassEncoder);
 #endif
-        
-        m_ImGuiContext->Render(renderPassEncoder);
-        renderPassEncoder.End();
-        wgpu::CommandBuffer commands = encoder.Finish();
-        m_GraphicsContext->GetDevice().GetQueue().Submit(1, &commands);
 
-        renderPassEncoder = nullptr;
-
-        view = nullptr;
-        m_GraphicsContext->GetSurface().Present();
-
-        m_GraphicsContext->GetDevice().Tick();
+            m_ImGuiContext->Render(renderPassEncoder);
+            renderPassEncoder.End();
+        }
+        {
+            ZoneScopedN("Submit Commands");
+            wgpu::CommandBuffer commands = encoder.Finish();
+            m_GraphicsContext->GetDevice().GetQueue().Submit(1, &commands);
+        }
+        {
+            ZoneScopedN("Present");
+            view = nullptr;
+            m_GraphicsContext->GetSurface().Present();
+            m_GraphicsContext->GetDevice().Tick();
+            m_GraphicsContext->FrameEnd();
+        }
     }
 
     void Application::OnFrameEnd()
@@ -228,10 +251,12 @@ m_ChunkRenderManager->Render(renderers, *m_Camera, renderPassEncoder);
         LOG_INFO("Running Application");
         while (!m_Window->ShouldClose())
         {
+            ZoneScopedN("Application::Run Loop");
             OnFrameStart();
             OnUI(m_Window->GetDeltaTime());
             OnUpdate(m_Window->GetDeltaTime());
             OnFrameEnd();
+            FrameMark;
         }
     }
 }

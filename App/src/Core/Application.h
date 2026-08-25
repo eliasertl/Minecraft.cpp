@@ -36,6 +36,7 @@ namespace Minecraft::Core
 
     private:
         static Application* s_Instance;
+        float m_SmoothedDeltaTime = 0.016f;
         Scope<Graphics::Window> m_Window;
         Scope<Graphics::GraphicsContext> m_GraphicsContext;
         Scope<Graphics::ImGuiContext> m_ImGuiContext;
