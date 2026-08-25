@@ -3,12 +3,6 @@
 
 namespace Minecraft::Graphics
 {
-    struct Vertex
-    {
-        float position[3];
-        float uv[2];
-    };
-
     ChunkRenderer::ChunkRenderer(Data::Chunk &chunk, GraphicsContext &graphicsContext)
         : m_Chunk(chunk), m_GraphicsContext(graphicsContext)
     {
@@ -111,77 +105,11 @@ namespace Minecraft::Graphics
                     if (!block || block->id == 0)
                         continue;
 
-                    const float minX = static_cast<float>(x);
-                    const float minY = static_cast<float>(y);
-                    const float minZ = static_cast<float>(z);
-
-                    const float maxX = minX + 1.0f;
-                    const float maxY = minY + 1.0f;
-                    const float maxZ = minZ + 1.0f;
-
-                    const uint32_t baseIndex = static_cast<uint32_t>(vertices.size());
-
-                    // Front (+Z)
-                    vertices.push_back({{maxX, maxY, maxZ}, {1.0f, 1.0f}});
-                    vertices.push_back({{minX, minY, maxZ}, {0.0f, 0.0f}});
-                    vertices.push_back({{maxX, minY, maxZ}, {1.0f, 0.0f}});
-                    vertices.push_back({{minX, maxY, maxZ}, {0.0f, 1.0f}});
-
-                    // Back (-Z)
-                    vertices.push_back({{minX, maxY, minZ}, {1.0f, 1.0f}});
-                    vertices.push_back({{maxX, minY, minZ}, {0.0f, 0.0f}});
-                    vertices.push_back({{minX, minY, minZ}, {1.0f, 0.0f}});
-                    vertices.push_back({{maxX, maxY, minZ}, {0.0f, 1.0f}});
-
-                    // Right (+X)
-                    vertices.push_back({{maxX, maxY, minZ}, {1.0f, 1.0f}});
-                    vertices.push_back({{maxX, minY, maxZ}, {0.0f, 0.0f}});
-                    vertices.push_back({{maxX, minY, minZ}, {1.0f, 0.0f}});
-                    vertices.push_back({{maxX, maxY, maxZ}, {0.0f, 1.0f}});
-
-                    // Left (-X)
-                    vertices.push_back({{minX, maxY, maxZ}, {1.0f, 1.0f}});
-                    vertices.push_back({{minX, minY, minZ}, {0.0f, 0.0f}});
-                    vertices.push_back({{minX, minY, maxZ}, {1.0f, 0.0f}});
-                    vertices.push_back({{minX, maxY, minZ}, {0.0f, 1.0f}});
-
-                    // Top (+Y)
-                    vertices.push_back({{maxX, maxY, minZ}, {1.0f, 1.0f}});
-                    vertices.push_back({{minX, maxY, maxZ}, {0.0f, 0.0f}});
-                    vertices.push_back({{maxX, maxY, maxZ}, {1.0f, 0.0f}});
-                    vertices.push_back({{minX, maxY, minZ}, {0.0f, 1.0f}});
-
-                    // Bottom (-Y)
-                    vertices.push_back({{maxX, minY, maxZ}, {1.0f, 1.0f}});
-                    vertices.push_back({{minX, minY, minZ}, {0.0f, 0.0f}});
-                    vertices.push_back({{maxX, minY, minZ}, {1.0f, 0.0f}});
-                    vertices.push_back({{minX, minY, maxZ}, {0.0f, 1.0f}});
-
-                    for (uint32_t face = 0; face < 6; ++face)
-                    {
-                        const uint32_t faceBase = baseIndex + face * 4;
-
-                        indices.push_back(faceBase + 0);
-                        indices.push_back(faceBase + 1);
-                        indices.push_back(faceBase + 2);
-
-                        indices.push_back(faceBase + 0);
-                        indices.push_back(faceBase + 3);
-                        indices.push_back(faceBase + 1);
-
 #ifdef MC_DEBUG
-                        wireFrameIndices.push_back(faceBase + 0);
-                        wireFrameIndices.push_back(faceBase + 1);
-                        wireFrameIndices.push_back(faceBase + 1);
-                        wireFrameIndices.push_back(faceBase + 2);
-                        wireFrameIndices.push_back(faceBase + 2);
-                        wireFrameIndices.push_back(faceBase + 0);
-                        wireFrameIndices.push_back(faceBase + 0);
-                        wireFrameIndices.push_back(faceBase + 3);
-                        wireFrameIndices.push_back(faceBase + 3);
-                        wireFrameIndices.push_back(faceBase + 1);
+                    CreateCube(vertices, indices, wireFrameIndices, x, y, z);
+#else
+                    CreateCube(vertices, indices, x, y, z);
 #endif
-                    }
                 }
             }
         }
@@ -207,5 +135,85 @@ namespace Minecraft::Graphics
 #ifdef MC_DEBUG
         m_GraphicsContext.GetQueue().WriteBuffer(m_WireframeIndexBuffer, 0, wireFrameIndices.data(), m_WireframeIndexCount * sizeof(uint32_t));
 #endif
+    }
+
+    void ChunkRenderer::CreateCube(std::vector<Vertex> &vertices,
+                                   std::vector<uint32_t> &indices,
+#ifdef MC_DEBUG
+                                   std::vector<uint32_t> &wireFrameIndices,
+#endif
+                                   uint32_t x, uint32_t y, uint32_t z)
+    {
+        const float minX = static_cast<float>(x);
+        const float minY = static_cast<float>(y);
+        const float minZ = static_cast<float>(z);
+
+        const float maxX = minX + 1.0f;
+        const float maxY = minY + 1.0f;
+        const float maxZ = minZ + 1.0f;
+
+        const uint32_t baseIndex = static_cast<uint32_t>(vertices.size());
+
+        // Front (+Z)
+        vertices.push_back({{maxX, maxY, maxZ}, {1.0f, 1.0f}});
+        vertices.push_back({{minX, minY, maxZ}, {0.0f, 0.0f}});
+        vertices.push_back({{maxX, minY, maxZ}, {1.0f, 0.0f}});
+        vertices.push_back({{minX, maxY, maxZ}, {0.0f, 1.0f}});
+
+        // Back (-Z)
+        vertices.push_back({{minX, maxY, minZ}, {1.0f, 1.0f}});
+        vertices.push_back({{maxX, minY, minZ}, {0.0f, 0.0f}});
+        vertices.push_back({{minX, minY, minZ}, {1.0f, 0.0f}});
+        vertices.push_back({{maxX, maxY, minZ}, {0.0f, 1.0f}});
+
+        // Right (+X)
+        vertices.push_back({{maxX, maxY, minZ}, {1.0f, 1.0f}});
+        vertices.push_back({{maxX, minY, maxZ}, {0.0f, 0.0f}});
+        vertices.push_back({{maxX, minY, minZ}, {1.0f, 0.0f}});
+        vertices.push_back({{maxX, maxY, maxZ}, {0.0f, 1.0f}});
+
+        // Left (-X)
+        vertices.push_back({{minX, maxY, maxZ}, {1.0f, 1.0f}});
+        vertices.push_back({{minX, minY, minZ}, {0.0f, 0.0f}});
+        vertices.push_back({{minX, minY, maxZ}, {1.0f, 0.0f}});
+        vertices.push_back({{minX, maxY, minZ}, {0.0f, 1.0f}});
+
+        // Top (+Y)
+        vertices.push_back({{maxX, maxY, minZ}, {1.0f, 1.0f}});
+        vertices.push_back({{minX, maxY, maxZ}, {0.0f, 0.0f}});
+        vertices.push_back({{maxX, maxY, maxZ}, {1.0f, 0.0f}});
+        vertices.push_back({{minX, maxY, minZ}, {0.0f, 1.0f}});
+
+        // Bottom (-Y)
+        vertices.push_back({{maxX, minY, maxZ}, {1.0f, 1.0f}});
+        vertices.push_back({{minX, minY, minZ}, {0.0f, 0.0f}});
+        vertices.push_back({{maxX, minY, minZ}, {1.0f, 0.0f}});
+        vertices.push_back({{minX, minY, maxZ}, {0.0f, 1.0f}});
+
+        for (uint32_t face = 0; face < 6; ++face)
+        {
+            const uint32_t faceBase = baseIndex + face * 4;
+
+            indices.push_back(faceBase + 0);
+            indices.push_back(faceBase + 1);
+            indices.push_back(faceBase + 2);
+
+            indices.push_back(faceBase + 0);
+            indices.push_back(faceBase + 3);
+            indices.push_back(faceBase + 1);
+
+#ifdef MC_DEBUG
+            wireFrameIndices.push_back(faceBase + 0);
+            wireFrameIndices.push_back(faceBase + 1);
+            wireFrameIndices.push_back(faceBase + 1);
+            wireFrameIndices.push_back(faceBase + 2);
+            wireFrameIndices.push_back(faceBase + 2);
+            wireFrameIndices.push_back(faceBase + 0);
+            wireFrameIndices.push_back(faceBase + 0);
+            wireFrameIndices.push_back(faceBase + 3);
+            wireFrameIndices.push_back(faceBase + 3);
+            wireFrameIndices.push_back(faceBase + 1);
+#endif
+        }
     }
 }

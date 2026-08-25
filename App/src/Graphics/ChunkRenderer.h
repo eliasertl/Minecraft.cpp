@@ -5,6 +5,8 @@
 #include "Graphics/GraphicsContext.h"
 
 #include <webgpu/webgpu_cpp.h>
+#include <vector>
+#include <glm/glm.hpp>
 
 namespace Minecraft::Graphics
 {
@@ -15,12 +17,25 @@ namespace Minecraft::Graphics
         ~ChunkRenderer();
 
         void Render(wgpu::RenderPassEncoder encoder);
-        #ifdef MC_DEBUG
+#ifdef MC_DEBUG
         void RenderWireframe(wgpu::RenderPassEncoder encoder);
-        #endif
+#endif
 
-    private:
+    private:  
+        struct Vertex
+        {
+            glm::vec3 position;
+            glm::vec2 uv;
+        };
+        
         void BuildMesh();
+        void CreateCube(std::vector<Vertex> &vertices,
+                        std::vector<uint32_t> &indices,
+                        #ifdef MC_DEBUG
+                        std::vector<uint32_t> &wireFrameIndices,
+                        #endif
+                        uint32_t x, uint32_t y, uint32_t z);
+
         void InitBuffers();
 
     private:
@@ -28,16 +43,16 @@ namespace Minecraft::Graphics
         Data::Chunk &m_Chunk;
         wgpu::Buffer m_VertexBuffer;
         wgpu::Buffer m_IndexBuffer;
-        #ifdef MC_DEBUG
+#ifdef MC_DEBUG
         wgpu::Buffer m_WireframeIndexBuffer;
-        #endif
+#endif
         uint32_t m_VertexCount = 0;
         uint32_t m_AllocatedVertexCount = 0;
         uint32_t m_IndexCount = 0;
         uint32_t m_AllocatedIndexCount = 0;
-        #ifdef MC_DEBUG
+#ifdef MC_DEBUG
         uint32_t m_WireframeIndexCount = 0;
         uint32_t m_AllocatedWireframeIndexCount = 0;
-        #endif
+#endif
     };
 }
