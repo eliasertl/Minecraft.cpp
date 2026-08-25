@@ -180,10 +180,10 @@ namespace Minecraft::Graphics
         // Front (+Z)
         if (activeFaces.front)
         {
-            vertices.push_back({{maxX, maxY, maxZ}, atlasCoord.uvMax});
-            vertices.push_back({{minX, minY, maxZ}, atlasCoord.uvMin});
-            vertices.push_back({{maxX, minY, maxZ}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
-            vertices.push_back({{minX, maxY, maxZ}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
+            vertices.push_back({{maxX, maxY, maxZ}, {0, 0, 1}, atlasCoord.uvMax});
+            vertices.push_back({{minX, minY, maxZ}, {0, 0, 1}, atlasCoord.uvMin});
+            vertices.push_back({{maxX, minY, maxZ}, {0, 0, 1}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
+            vertices.push_back({{minX, maxY, maxZ}, {0, 0, 1}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
 #ifdef MC_DEBUG
             AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
 #else
@@ -194,10 +194,10 @@ namespace Minecraft::Graphics
         // Back (-Z)
         if (activeFaces.back)
         {
-            vertices.push_back({{minX, maxY, minZ}, atlasCoord.uvMax});
-            vertices.push_back({{maxX, minY, minZ}, atlasCoord.uvMin});
-            vertices.push_back({{minX, minY, minZ}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
-            vertices.push_back({{maxX, maxY, minZ}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
+            vertices.push_back({{minX, maxY, minZ}, {0, 0, -1}, atlasCoord.uvMax});
+            vertices.push_back({{maxX, minY, minZ}, {0, 0, -1}, atlasCoord.uvMin});
+            vertices.push_back({{minX, minY, minZ}, {0, 0, -1}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
+            vertices.push_back({{maxX, maxY, minZ}, {0, 0, -1}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
 #ifdef MC_DEBUG
             AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
 #else
@@ -208,10 +208,10 @@ namespace Minecraft::Graphics
         // Right (+X)
         if (activeFaces.right)
         {
-            vertices.push_back({{maxX, maxY, maxZ}, atlasCoord.uvMax});
-            vertices.push_back({{maxX, minY, minZ}, atlasCoord.uvMin});
-            vertices.push_back({{maxX, minY, maxZ}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
-            vertices.push_back({{maxX, maxY, minZ}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
+            vertices.push_back({{maxX, maxY, maxZ}, {1, 0, 0}, atlasCoord.uvMax});
+            vertices.push_back({{maxX, minY, minZ}, {1, 0, 0}, atlasCoord.uvMin});
+            vertices.push_back({{maxX, minY, maxZ}, {1, 0, 0}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
+            vertices.push_back({{maxX, maxY, minZ}, {1, 0, 0}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
 #ifdef MC_DEBUG
             AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
 #else
@@ -222,10 +222,10 @@ namespace Minecraft::Graphics
         // Left (-X)
         if (activeFaces.left)
         {
-            vertices.push_back({{minX, maxY, maxZ}, atlasCoord.uvMax});
-            vertices.push_back({{minX, minY, minZ}, atlasCoord.uvMin});
-            vertices.push_back({{minX, minY, maxZ}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
-            vertices.push_back({{minX, maxY, minZ}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
+            vertices.push_back({{minX, maxY, maxZ}, {-1, 0, 0}, atlasCoord.uvMax});
+            vertices.push_back({{minX, minY, minZ}, {-1, 0, 0}, atlasCoord.uvMin});
+            vertices.push_back({{minX, minY, maxZ}, {-1, 0, 0}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
+            vertices.push_back({{minX, maxY, minZ}, {-1, 0, 0}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
 #ifdef MC_DEBUG
             AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
 #else
@@ -236,10 +236,10 @@ namespace Minecraft::Graphics
         // Top (+Y)
         if (activeFaces.top)
         {
-            vertices.push_back({{maxX, maxY, minZ}, atlasCoord.uvMax});
-            vertices.push_back({{minX, maxY, maxZ}, atlasCoord.uvMin});
-            vertices.push_back({{maxX, maxY, maxZ}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
-            vertices.push_back({{minX, maxY, minZ}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
+            vertices.push_back({{maxX, maxY, minZ}, {0, 1, 0}, atlasCoord.uvMax});
+            vertices.push_back({{minX, maxY, maxZ}, {0, 1, 0}, atlasCoord.uvMin});
+            vertices.push_back({{maxX, maxY, maxZ}, {0, 1, 0}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
+            vertices.push_back({{minX, maxY, minZ}, {0, 1, 0}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
 #ifdef MC_DEBUG
             AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
 #else
@@ -250,10 +250,10 @@ namespace Minecraft::Graphics
         // Bottom (-Y)
         if (activeFaces.bottom)
         {
-            vertices.push_back({{maxX, minY, maxZ}, atlasCoord.uvMax});
-            vertices.push_back({{minX, minY, minZ}, atlasCoord.uvMin});
-            vertices.push_back({{maxX, minY, minZ}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
-            vertices.push_back({{minX, minY, maxZ}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
+            vertices.push_back({{maxX, minY, maxZ}, {0, -1, 0}, atlasCoord.uvMax});
+            vertices.push_back({{minX, minY, minZ}, {0, -1, 0}, atlasCoord.uvMin});
+            vertices.push_back({{maxX, minY, minZ}, {0, -1, 0}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
+            vertices.push_back({{minX, minY, maxZ}, {0, -1, 0}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
 #ifdef MC_DEBUG
             AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
 #else

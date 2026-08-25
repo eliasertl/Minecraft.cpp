@@ -50,18 +50,22 @@ namespace Minecraft::Graphics
         pipelineDesc.vertex.constants = nullptr;
 
         wgpu::VertexBufferLayout vertexBufferLayout = {};
-        std::vector<wgpu::VertexAttribute> vertexAttribs(2);
+        std::vector<wgpu::VertexAttribute> vertexAttribs(3);
         vertexAttribs[0].format = wgpu::VertexFormat::Float32x3;
         vertexAttribs[0].offset = 0;
         vertexAttribs[0].shaderLocation = 0;
 
-        vertexAttribs[1].format = wgpu::VertexFormat::Float32x2;
+        vertexAttribs[1].format = wgpu::VertexFormat::Float32x3;
         vertexAttribs[1].offset = sizeof(float) * 3;
         vertexAttribs[1].shaderLocation = 1;
 
+        vertexAttribs[2].format = wgpu::VertexFormat::Float32x2;
+        vertexAttribs[2].offset = sizeof(float) * 6;
+        vertexAttribs[2].shaderLocation = 2;
+
         vertexBufferLayout.attributeCount = vertexAttribs.size();
         vertexBufferLayout.attributes = vertexAttribs.data();
-        vertexBufferLayout.arrayStride = sizeof(float) * 5;
+        vertexBufferLayout.arrayStride = sizeof(float) * 8;
         vertexBufferLayout.stepMode = wgpu::VertexStepMode::Vertex;
 
         pipelineDesc.vertex.bufferCount = 1;
