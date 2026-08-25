@@ -16,6 +16,9 @@ namespace Minecraft::Graphics
         ~ChunkRenderManager();
 
         void Render(std::vector<ChunkRenderer *> &renderers, const Data::Camera& camera, wgpu::RenderPassEncoder encoder);
+        #ifdef MC_DEBUG
+        void RenderWireframe(std::vector<ChunkRenderer *> &renderers, const Data::Camera& camera, wgpu::RenderPassEncoder encoder);
+        #endif
 
     private:
         void InitPipeline();
@@ -24,6 +27,9 @@ namespace Minecraft::Graphics
     private:
         GraphicsContext& m_GraphicsContext;
         wgpu::RenderPipeline m_RenderPipeline;
+        #ifdef MC_DEBUG
+        wgpu::RenderPipeline m_RenderWireframePipeline;
+        #endif
         wgpu::Buffer m_CameraUniformBuffer;
         wgpu::BindGroup m_CameraBindGroup;
         wgpu::BindGroupLayout m_CameraBindGroupLayout;

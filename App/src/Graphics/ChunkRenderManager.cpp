@@ -144,12 +144,22 @@ namespace Minecraft::Graphics
         m_CameraBindGroup = m_GraphicsContext.GetDevice().CreateBindGroup(&bindGroupDesc);
 
         m_RenderPipeline = m_GraphicsContext.GetDevice().CreateRenderPipeline(&pipelineDesc);
-        shaderModule = nullptr;
 
         if (!m_RenderPipeline)
         {
             LOG_ERROR("Failed to create render pipeline!");
         }
+
+        #ifdef MC_DEBUG
+        pipelineDesc.primitive.topology = wgpu::PrimitiveTopology::LineList;
+        m_RenderWireframePipeline = m_GraphicsContext.GetDevice().CreateRenderPipeline(&pipelineDesc);
+        if (!m_RenderWireframePipeline)
+        {
+            LOG_ERROR("Failed to create wireframe render pipeline!");
+        }
+        #endif
+
+        shaderModule = nullptr;
     }
 
     void ChunkRenderManager::InitCameraBuffer()
@@ -171,11 +181,31 @@ namespace Minecraft::Graphics
         cameraUniforms.viewProjection = camera.GetViewProjection();
         m_GraphicsContext.GetQueue().WriteBuffer(m_CameraUniformBuffer, 0, &cameraUniforms, sizeof(CameraUniforms));
 
+        encoder.PushDebugGroup("ChunkRenderManager::Render");
         encoder.SetPipeline(m_RenderPipeline);
         encoder.SetBindGroup(0, m_CameraBindGroup);
         for (auto renderer : renderers)
         {
             renderer->Render(encoder);
         }
+        encoder.PopDebugGroup();
     }
+
+    #ifdef MC_DEBUG
+    void ChunkRenderManager::RenderWireframe(std::vector<ChunkRenderer *> &renderers, const Data::Camera& camera, wgpu::RenderPassEncoder encoder)
+    {
+        CameraUniforms cameraUniforms;
+        cameraUniforms.viewProjection = camera.GetViewProjection();
+        m_GraphicsContext.GetQueue().WriteBuffer(m_CameraUniformBuffer, 0, &cameraUniforms, sizeof(CameraUniforms));
+
+        encoder.PushDebugGroup("ChunkRenderManager::RenderWireframe");
+        encoder.SetPipeline(m_RenderWireframePipeline);
+        encoder.SetBindGroup(0, m_CameraBindGroup);
+        for (auto renderer : renderers)
+        {
+            renderer->RenderWireframe(encoder);
+        }
+        encoder.PopDebugGroup();
+    }
+    #endif
 }

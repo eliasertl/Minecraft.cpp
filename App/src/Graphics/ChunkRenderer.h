@@ -15,6 +15,9 @@ namespace Minecraft::Graphics
         ~ChunkRenderer();
 
         void Render(wgpu::RenderPassEncoder encoder);
+        #ifdef MC_DEBUG
+        void RenderWireframe(wgpu::RenderPassEncoder encoder);
+        #endif
 
     private:
         void BuildMesh();
@@ -25,9 +28,16 @@ namespace Minecraft::Graphics
         Data::Chunk &m_Chunk;
         wgpu::Buffer m_VertexBuffer;
         wgpu::Buffer m_IndexBuffer;
+        #ifdef MC_DEBUG
+        wgpu::Buffer m_WireframeIndexBuffer;
+        #endif
         uint32_t m_VertexCount = 0;
         uint32_t m_AllocatedVertexCount = 0;
         uint32_t m_IndexCount = 0;
         uint32_t m_AllocatedIndexCount = 0;
+        #ifdef MC_DEBUG
+        uint32_t m_WireframeIndexCount = 0;
+        uint32_t m_AllocatedWireframeIndexCount = 0;
+        #endif
     };
 }

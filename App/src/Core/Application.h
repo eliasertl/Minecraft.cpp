@@ -22,6 +22,12 @@ namespace Minecraft::Core
         void Run();
 
     private:
+        void OnFrameStart();
+        void OnUI(float deltaTime);
+        void OnUpdate(float deltaTime);
+        void OnFrameEnd();
+
+    private:
         Scope<Graphics::Window> m_Window;
         Scope<Graphics::GraphicsContext> m_GraphicsContext;
         Scope<Graphics::ImGuiContext> m_ImGuiContext;

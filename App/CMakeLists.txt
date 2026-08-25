@@ -29,3 +29,10 @@ add_custom_command(TARGET game POST_BUILD
             ${CMAKE_SOURCE_DIR}/Assets
             $<TARGET_FILE_DIR:game>/assets
 )
+
+target_compile_definitions(game PRIVATE
+    $<$<CONFIG:Debug>:MC_DEBUG>
+    $<$<CONFIG:RelWithDebInfo>:MC_DEBUG>
+    $<$<CONFIG:Release>:MC_RELEASE>
+    $<$<CONFIG:MinSizeRel>:MC_RELEASE>
+)
