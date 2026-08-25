@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Data/BlockTypes.h"
 #include "GraphicsContext.h"
 #include <webgpu/webgpu_cpp.h>
 #include <glm/glm.hpp>
@@ -13,14 +12,18 @@ namespace Minecraft::Graphics
         glm::vec2 uvMax;
     };
 
+    typedef uint16_t BlockAtlasID;
+
     class BlockAtlas
     {
     public:
-        BlockAtlas(GraphicsContext& context, std::vector<Data::BlockType> blockTypes);
+        BlockAtlas(GraphicsContext& context);
         ~BlockAtlas();
 
-        BlockAtlasCoord GetBlockTextureCoord(const std::string& blockId) const;
-        BlockAtlasCoord GetBlockTextureCoord(const Data::BlockType& blockType) const;
+        BlockAtlasID RegisterBlockTexture(const std::string& texturePath);
+        void Finalize();
+
+        BlockAtlasCoord GetBlockTextureCoord(BlockAtlasID id) const;
 
         inline wgpu::Texture GetTexture() const { return m_AtlasTexture; }
         inline wgpu::TextureView GetTextureView() const { return m_AtlasTextureView; }
@@ -32,14 +35,14 @@ namespace Minecraft::Graphics
     private:
         struct BlockTextureInfo
         {
-            std::string id;
+            std::string path;
             uint32_t width, height;
             glm::ivec2 atlasPosition{0, 0};
             uint8_t channels;
             uint8_t* data = nullptr;
         };
 
-        void ReadTextures();
+        void CreateErrorTexture();
         void CreateAtlasTexture();
 
     private:
@@ -47,7 +50,6 @@ namespace Minecraft::Graphics
         wgpu::Texture m_AtlasTexture;
         wgpu::TextureView m_AtlasTextureView;
         wgpu::Sampler m_AtlasSampler;
-        std::vector<Data::BlockType> m_BlockTypes;
         std::vector<BlockTextureInfo> m_BlockTextureInfos;
         uint32_t m_Width = 0, m_Height = 0;
     };

@@ -3,13 +3,15 @@
 #include <string>
 #include <vector>
 
+#include "Graphics/BlockAtlas.h"
+
 namespace Minecraft::Data
 {
     struct BlockType
     {
         std::string name = "Unknown";
         std::string id = "default:unknown";
-        std::string texturePath = "";
+        Graphics::BlockAtlasID textureId = 0;
     };
 
     class BlockTypes

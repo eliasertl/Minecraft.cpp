@@ -126,7 +126,8 @@ namespace Minecraft::Graphics
                         activeFaces.front = true;
 
                     // minus one because AIR=0
-                    BlockAtlasCoord atlasCoord = m_BlockAtlas.GetBlockTextureCoord(Data::BlockTypes::getRegisteredBlockTypes().at(block->id - 1)); // Bit sketchy, will be replaced when loading chunks from file // TODO: Replace
+                    const Data::BlockType &blockType = Data::BlockTypes::getRegisteredBlockTypes()[block->id - 1];
+                    BlockAtlasCoord atlasCoord = m_BlockAtlas.GetBlockTextureCoord(blockType.textureId);
 #ifdef MC_DEBUG
                     CreateCube(vertices, indices, wireFrameIndices, x, y, z, atlasCoord, activeFaces);
 #else

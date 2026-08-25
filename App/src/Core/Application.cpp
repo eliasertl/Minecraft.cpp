@@ -41,14 +41,20 @@ namespace Minecraft::Core
         m_ImGuiContext = CreateScope<Graphics::ImGuiContext>(*m_Window, m_GraphicsContext->GetDevice(), m_GraphicsContext->GetQueue(), m_GraphicsContext->GetSurfaceFormat(), m_GraphicsContext->GetDepthFormat());
         Input::Init(m_Window.get());
 
+        
+        m_BlockAtlas = CreateScope<Graphics::BlockAtlas>(*m_GraphicsContext); 
+        Graphics::BlockAtlasID cobblestoneTextureId = m_BlockAtlas->RegisterBlockTexture("assets/textures/cobblestone.png");
+        Graphics::BlockAtlasID dirtTextureId = m_BlockAtlas->RegisterBlockTexture("assets/textures/dirt.png");
+        Graphics::BlockAtlasID planksTextureId = m_BlockAtlas->RegisterBlockTexture("assets/textures/planks.png");
+        Graphics::BlockAtlasID testTextureId = m_BlockAtlas->RegisterBlockTexture("assets/textures/test.png");
 
-        Data::BlockTypes::registerBlockType({"Cobblestone", "default:cobblestone", "assets/textures/cobblestone.png"});
-        Data::BlockTypes::registerBlockType({"Dirt", "default:dirt", "assets/textures/dirt.png"});
-        Data::BlockTypes::registerBlockType({"Planks", "default:planks", "assets/textures/planks.png"});
-        Data::BlockTypes::registerBlockType({"Test Block", "default:test", "assets/textures/test.png"});
+        Data::BlockTypes::registerBlockType({"Cobblestone", "default:cobblestone", cobblestoneTextureId});
+        Data::BlockTypes::registerBlockType({"Dirt", "default:dirt", dirtTextureId});
+        Data::BlockTypes::registerBlockType({"Planks", "default:planks", planksTextureId});
+        Data::BlockTypes::registerBlockType({"Test Block", "default:test", testTextureId});
         Data::BlockTypes::finishRegistration();
+        m_BlockAtlas->Finalize();
 
-        m_BlockAtlas = CreateScope<Graphics::BlockAtlas>(*m_GraphicsContext, Data::BlockTypes::getRegisteredBlockTypes());
 
         m_TestChunk = CreateScope<Data::Chunk>();
         SetTestChunkRandom();

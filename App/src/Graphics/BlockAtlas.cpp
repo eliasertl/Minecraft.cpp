@@ -7,15 +7,19 @@
 
 namespace Minecraft::Graphics
 {
-    BlockAtlas::BlockAtlas(GraphicsContext &context, std::vector<Data::BlockType> blockTypes)
-        : m_Context(context), m_BlockTypes(std::move(blockTypes))
+    BlockAtlas::BlockAtlas(GraphicsContext &context)
+        : m_Context(context)
     {
-        ReadTextures();
-        CreateAtlasTexture();
+        CreateErrorTexture();
     }
 
     BlockAtlas::~BlockAtlas()
     {
+    }
+
+    void BlockAtlas::Finalize()
+    {
+        CreateAtlasTexture();
     }
 
     // Based on https://lisyarus.github.io/blog/posts/texture-packing.html
@@ -83,7 +87,7 @@ namespace Minecraft::Graphics
                 LOG_ERROR(
                     "Texture '{}' is not square ({}x{}). "
                     "The current atlas allocator only supports square textures.",
-                    texture.id,
+                    texture.path,
                     texture.width,
                     texture.height);
 
@@ -304,22 +308,43 @@ namespace Minecraft::Graphics
             m_BlockTextureInfos.size());
     }
 
-    void BlockAtlas::ReadTextures()
+    BlockAtlasID BlockAtlas::RegisterBlockTexture(const std::string &texturePath)
     {
-        m_BlockTextureInfos.clear();
-        m_BlockTextureInfos.reserve(m_BlockTypes.size());
+        BlockTextureInfo textureInfo;
+        textureInfo.path = texturePath;
 
-        BlockTextureInfo checkerboardTexture;
-        checkerboardTexture.id = "default:missing_texture";
-        checkerboardTexture.width = 32;
-        checkerboardTexture.height = 32;
-        checkerboardTexture.channels = 4;
-        std::vector<uint8_t> checkerboardData(checkerboardTexture.width * checkerboardTexture.height * checkerboardTexture.channels);
-        for (int y = 0; y < checkerboardTexture.height; ++y)
+        int width, height, channels;
+        stbi_set_flip_vertically_on_load(true);
+        unsigned char *data = stbi_load(texturePath.c_str(), &width, &height, &channels, 4);
+        if (data)
         {
-            for (int x = 0; x < checkerboardTexture.width; ++x)
+            textureInfo.width = width;
+            textureInfo.height = height;
+            textureInfo.channels = channels;
+            textureInfo.data = data;
+            m_BlockTextureInfos.push_back(textureInfo);
+            return m_BlockTextureInfos.size() - 1;
+        }
+        else
+        {
+            LOG_ERROR("Failed to load texture: {}", texturePath);
+            return 0; // Error Texture ID
+        }
+    }
+
+    void BlockAtlas::CreateErrorTexture()
+    {
+        static std::vector<uint8_t> checkerboardData;
+        BlockTextureInfo errorTexture;
+        errorTexture.width = 16;
+        errorTexture.height = 16;
+        errorTexture.channels = 4;
+        checkerboardData.resize(errorTexture.width * errorTexture.height * errorTexture.channels);
+        for (int y = 0; y < errorTexture.height; ++y)
+        {
+            for (int x = 0; x < errorTexture.width; ++x)
             {
-                int index = (y * checkerboardTexture.width + x) * checkerboardTexture.channels;
+                int index = (y * errorTexture.width + x) * errorTexture.channels;
                 if ((x / 8 + y / 8) % 2 == 0)
                 {
                     checkerboardData[index] = 255;     // R
@@ -336,54 +361,26 @@ namespace Minecraft::Graphics
                 }
             }
         }
-        checkerboardTexture.data = checkerboardData.data();
-        m_BlockTextureInfos.push_back(checkerboardTexture);
-
-        for (auto &blockType : m_BlockTypes)
-        {
-            BlockTextureInfo textureInfo;
-            textureInfo.id = blockType.id;
-
-            int width, height, channels;
-            stbi_set_flip_vertically_on_load(true);
-            unsigned char *data = stbi_load(blockType.texturePath.c_str(), &width, &height, &channels, 4);
-            if (data)
-            {
-                textureInfo.width = width;
-                textureInfo.height = height;
-                textureInfo.channels = channels;
-                textureInfo.data = data;
-                m_BlockTextureInfos.push_back(textureInfo);
-            }
-            else
-            {
-                LOG_ERROR("Failed to load texture: {}", blockType.texturePath);
-                textureInfo.width = 32;
-                textureInfo.height = 32;
-                textureInfo.channels = 4;
-                textureInfo.data = checkerboardData.data();
-                m_BlockTextureInfos.push_back(checkerboardTexture);
-            }
-        }
+        errorTexture.data = checkerboardData.data();
+        m_BlockTextureInfos.push_back(errorTexture);
     }
 
-    BlockAtlasCoord BlockAtlas::GetBlockTextureCoord(const std::string &blockId) const
-    {
-        for (const auto &textureInfo : m_BlockTextureInfos)
-        {
-            if (textureInfo.id == blockId)
-            {
-                const float x = static_cast<float>(textureInfo.atlasPosition.x);
-                const float y = static_cast<float>(textureInfo.atlasPosition.y);
-                const float width = static_cast<float>(textureInfo.width);
-                const float height = static_cast<float>(textureInfo.height);
 
-                return {
-                    {x / static_cast<float>(m_Width),
-                     y / static_cast<float>(m_Height)},
-                    {(x + width) / static_cast<float>(m_Width),
-                     (y + height) / static_cast<float>(m_Height)}};
-            }
+    BlockAtlasCoord BlockAtlas::GetBlockTextureCoord(BlockAtlasID id) const
+    {
+        if (id < m_BlockTextureInfos.size())
+        {
+            const auto &textureInfo = m_BlockTextureInfos[id];
+            const float x = static_cast<float>(textureInfo.atlasPosition.x);
+            const float y = static_cast<float>(textureInfo.atlasPosition.y);
+            const float width = static_cast<float>(textureInfo.width);
+            const float height = static_cast<float>(textureInfo.height);
+
+            return {
+                {x / static_cast<float>(m_Width),
+                 y / static_cast<float>(m_Height)},
+                {(x + width) / static_cast<float>(m_Width),
+                 (y + height) / static_cast<float>(m_Height)}};
         }
 
         auto &errorTexture = m_BlockTextureInfos[0];
@@ -397,10 +394,5 @@ namespace Minecraft::Graphics
              y / static_cast<float>(m_Height)},
             {(x + width) / static_cast<float>(m_Width),
              (y + height) / static_cast<float>(m_Height)}};
-    }
-
-    BlockAtlasCoord BlockAtlas::GetBlockTextureCoord(const Data::BlockType &blockType) const
-    {
-        return GetBlockTextureCoord(blockType.id);
     }
 }
