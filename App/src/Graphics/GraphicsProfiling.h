@@ -12,4 +12,4 @@ namespace Minecraft::Graphics
     };
 }
 
-#define TracyGPUZoneN(encoder, passDesc, name) TracyWebGPUZone(Minecraft::Graphics::GraphicsProfiling::GetTracyQueueContext(), encoder.Get(), passDesc, name)
+#define TracyGPUZoneN(encoder, passDesc, name) TracyWebGPUZone(Minecraft::Graphics::GraphicsProfiling::GetTracyQueueContext(), encoder.Get(), reinterpret_cast<WGPURenderPassDescriptor&>(passDesc), name)
