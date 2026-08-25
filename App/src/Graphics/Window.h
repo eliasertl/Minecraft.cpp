@@ -12,6 +12,12 @@ namespace Minecraft::Graphics {
         std::string title = "Window";
     };
 
+    enum class WindowCursorMode {
+        Normal = 0,
+        Hidden = 1,
+        Disabled = 2
+    };
+
     class Window
     {
     public:
@@ -22,6 +28,8 @@ namespace Minecraft::Graphics {
 
         void Update();
         void Maximize();
+
+        void SetCursorMode(WindowCursorMode mode);
 
         inline uint32_t GetWidth() const { return m_Width; }
         inline uint32_t GetHeight() const { return m_Height; }

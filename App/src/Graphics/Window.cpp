@@ -56,6 +56,22 @@ namespace Minecraft::Graphics
         glfwMaximizeWindow(m_Window);
     }
 
+    void Window::SetCursorMode(WindowCursorMode mode)
+    {
+        switch (mode)
+        {
+            case WindowCursorMode::Normal:
+                glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                break;
+            case WindowCursorMode::Hidden:
+                glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+                break;
+            case WindowCursorMode::Disabled:
+                glfwSetInputMode(m_Window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+                break;
+        }
+    }
+
     void Window::Update()
     {
         m_DeltaTime = glfwGetTime() - m_LastFrameTime;

@@ -1,6 +1,7 @@
 #include "Camera.h"
 #include "Common/Input.h"
 #include "Core/Logger.h"
+#include "Core/Application.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -40,9 +41,12 @@ namespace Minecraft::Data
             movement.y -= m_MovementSpeed * 0.7f;
 
         glm::vec2 mouseDelta = glm::vec2(0.0f);
-        if(Input::IsMouseButtonPressed(MouseButton::Right))
+        if(!Input::IsKeyPressed(KeyCode::LeftAlt) && !Input::IsKeyPressed(KeyCode::RightAlt))
         {
             mouseDelta = Input::GetMouseDelta();
+            m_Window.SetCursorMode(Graphics::WindowCursorMode::Disabled);
+        }else{
+            m_Window.SetCursorMode(Graphics::WindowCursorMode::Normal);
         }
         if (mouseDelta.x != 0.0f || mouseDelta.y != 0.0f)
         {

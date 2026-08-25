@@ -18,9 +18,11 @@ namespace Minecraft::Core
     };
 
     static ApplicationSettings s_ApplicationSettings;
+    Application* Application::s_Instance = nullptr;
 
     Application::Application()
     {
+        s_Instance = this;
         Log::Init();
         LOG_INFO("Creating Application");
 

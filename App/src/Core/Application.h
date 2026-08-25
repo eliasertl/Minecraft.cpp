@@ -21,6 +21,8 @@ namespace Minecraft::Core
 
         void Run();
 
+        static Application& Get() { return *s_Instance; }
+
     private:
         void OnFrameStart();
         void OnUI(float deltaTime);
@@ -28,6 +30,7 @@ namespace Minecraft::Core
         void OnFrameEnd();
 
     private:
+        static Application* s_Instance;
         Scope<Graphics::Window> m_Window;
         Scope<Graphics::GraphicsContext> m_GraphicsContext;
         Scope<Graphics::ImGuiContext> m_ImGuiContext;
