@@ -95,6 +95,8 @@ namespace Minecraft::Graphics
                     .topLeft = pen,
                     .bottomRight = pen + glm::ivec2(size, size)};
 
+            m_BlockTextureInfos[index].atlasPosition = pen;
+
             pen.x += size;
 
             if (!ladder.empty() &&
@@ -222,11 +224,19 @@ namespace Minecraft::Graphics
 
         m_AtlasTextureView = m_AtlasTexture.CreateView(&viewDesc);
 
+        wgpu::SamplerDescriptor samplerDesc{};
+        samplerDesc.magFilter = wgpu::FilterMode::Nearest;
+        samplerDesc.minFilter = wgpu::FilterMode::Nearest;
+        samplerDesc.mipmapFilter = wgpu::MipmapFilterMode::Nearest;
+        samplerDesc.addressModeU = wgpu::AddressMode::ClampToEdge;
+        samplerDesc.addressModeV = wgpu::AddressMode::ClampToEdge;
+
+        m_AtlasSampler = m_Context.GetDevice().CreateSampler(&samplerDesc);
 
         wgpu::TexelCopyTextureInfo destination{};
         destination.texture = m_AtlasTexture;
         destination.mipLevel = 0;
-        destination.origin = { 0, 0, 0 };
+        destination.origin = {0, 0, 0};
         destination.aspect = wgpu::TextureAspect::All;
 
         wgpu::TexelCopyBufferLayout layout{};
@@ -245,8 +255,7 @@ namespace Minecraft::Graphics
         {
             std::vector<uint8_t> paddedData(
                 static_cast<size_t>(bytesPerRow) * m_Height,
-                0
-            );
+                0);
 
             for (uint32_t y = 0; y < m_Height; ++y)
             {
@@ -256,41 +265,36 @@ namespace Minecraft::Graphics
 
                     data.data() +
                         static_cast<size_t>(y) *
-                        unalignedBytesPerRow,
+                            unalignedBytesPerRow,
 
-                    unalignedBytesPerRow
-                );
+                    unalignedBytesPerRow);
             }
 
             wgpu::Extent3D writeSize{
                 m_Width,
                 m_Height,
-                1
-            };
+                1};
 
             m_Context.GetQueue().WriteTexture(
                 &destination,
                 paddedData.data(),
                 paddedData.size(),
                 &layout,
-                &writeSize
-            );
+                &writeSize);
         }
         else
         {
             wgpu::Extent3D writeSize{
                 m_Width,
                 m_Height,
-                1
-            };
+                1};
 
             m_Context.GetQueue().WriteTexture(
                 &destination,
                 data.data(),
                 data.size(),
                 &layout,
-                &writeSize
-            );
+                &writeSize);
         }
 
         LOG_INFO(
@@ -305,12 +309,43 @@ namespace Minecraft::Graphics
         m_BlockTextureInfos.clear();
         m_BlockTextureInfos.reserve(m_BlockTypes.size());
 
+        BlockTextureInfo checkerboardTexture;
+        checkerboardTexture.id = "default:missing_texture";
+        checkerboardTexture.width = 32;
+        checkerboardTexture.height = 32;
+        checkerboardTexture.channels = 4;
+        std::vector<uint8_t> checkerboardData(checkerboardTexture.width * checkerboardTexture.height * checkerboardTexture.channels);
+        for (int y = 0; y < checkerboardTexture.height; ++y)
+        {
+            for (int x = 0; x < checkerboardTexture.width; ++x)
+            {
+                int index = (y * checkerboardTexture.width + x) * checkerboardTexture.channels;
+                if ((x / 8 + y / 8) % 2 == 0)
+                {
+                    checkerboardData[index] = 255;     // R
+                    checkerboardData[index + 1] = 0;   // G
+                    checkerboardData[index + 2] = 255; // B
+                    checkerboardData[index + 3] = 255; // A
+                }
+                else
+                {
+                    checkerboardData[index] = 0;       // R
+                    checkerboardData[index + 1] = 0;   // G
+                    checkerboardData[index + 2] = 0;   // B
+                    checkerboardData[index + 3] = 255; // A
+                }
+            }
+        }
+        checkerboardTexture.data = checkerboardData.data();
+        m_BlockTextureInfos.push_back(checkerboardTexture);
+
         for (auto &blockType : m_BlockTypes)
         {
             BlockTextureInfo textureInfo;
             textureInfo.id = blockType.id;
 
             int width, height, channels;
+            stbi_set_flip_vertically_on_load(true);
             unsigned char *data = stbi_load(blockType.texturePath.c_str(), &width, &height, &channels, 4);
             if (data)
             {
@@ -323,7 +358,49 @@ namespace Minecraft::Graphics
             else
             {
                 LOG_ERROR("Failed to load texture: {}", blockType.texturePath);
+                textureInfo.width = 32;
+                textureInfo.height = 32;
+                textureInfo.channels = 4;
+                textureInfo.data = checkerboardData.data();
+                m_BlockTextureInfos.push_back(checkerboardTexture);
             }
         }
+    }
+
+    BlockAtlasCoord BlockAtlas::GetBlockTextureCoord(const std::string &blockId) const
+    {
+        for (const auto &textureInfo : m_BlockTextureInfos)
+        {
+            if (textureInfo.id == blockId)
+            {
+                const float x = static_cast<float>(textureInfo.atlasPosition.x);
+                const float y = static_cast<float>(textureInfo.atlasPosition.y);
+                const float width = static_cast<float>(textureInfo.width);
+                const float height = static_cast<float>(textureInfo.height);
+
+                return {
+                    {x / static_cast<float>(m_Width),
+                     y / static_cast<float>(m_Height)},
+                    {(x + width) / static_cast<float>(m_Width),
+                     (y + height) / static_cast<float>(m_Height)}};
+            }
+        }
+
+        auto &errorTexture = m_BlockTextureInfos[0];
+        const float x = static_cast<float>(errorTexture.atlasPosition.x);
+        const float y = static_cast<float>(errorTexture.atlasPosition.y);
+        const float width = static_cast<float>(errorTexture.width);
+        const float height = static_cast<float>(errorTexture.height);
+
+        return {
+            {x / static_cast<float>(m_Width),
+             y / static_cast<float>(m_Height)},
+            {(x + width) / static_cast<float>(m_Width),
+             (y + height) / static_cast<float>(m_Height)}};
+    }
+
+    BlockAtlasCoord BlockAtlas::GetBlockTextureCoord(const Data::BlockType &blockType) const
+    {
+        return GetBlockTextureCoord(blockType.id);
     }
 }

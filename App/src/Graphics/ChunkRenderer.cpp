@@ -1,12 +1,13 @@
 #include "ChunkRenderer.h"
+#include "Data/BlockTypes.h"
 #include "Core/Logger.h"
 
 #include <tracy/Tracy.hpp>
 
 namespace Minecraft::Graphics
 {
-    ChunkRenderer::ChunkRenderer(Data::Chunk &chunk, GraphicsContext &graphicsContext)
-        : m_Chunk(chunk), m_GraphicsContext(graphicsContext)
+    ChunkRenderer::ChunkRenderer(Data::Chunk &chunk, GraphicsContext &graphicsContext, const BlockAtlas &blockAtlas)
+        : m_Chunk(chunk), m_GraphicsContext(graphicsContext), m_BlockAtlas(blockAtlas)
     {
         InitBuffers();
         BuildMesh();
@@ -124,10 +125,12 @@ namespace Minecraft::Graphics
                     if (z == Data::CHUNK_LENGTH - 1 || !m_Chunk.getBlock(x, y, z + 1) || m_Chunk.getBlock(x, y, z + 1)->id == 0)
                         activeFaces.front = true;
 
+                    // minus one because AIR=0
+                    BlockAtlasCoord atlasCoord = m_BlockAtlas.GetBlockTextureCoord(Data::BlockTypes::getRegisteredBlockTypes().at(block->id - 1)); // Bit sketchy, will be replaced when loading chunks from file // TODO: Replace
 #ifdef MC_DEBUG
-                    CreateCube(vertices, indices, wireFrameIndices, x, y, z, activeFaces);
+                    CreateCube(vertices, indices, wireFrameIndices, x, y, z, atlasCoord, activeFaces);
 #else
-                    CreateCube(vertices, indices, x, y, z, activeFaces);
+                    CreateCube(vertices, indices, x, y, z, atlasCoord, activeFaces);
 #endif
                 }
             }
@@ -162,6 +165,7 @@ namespace Minecraft::Graphics
                                    std::vector<uint32_t> &wireFrameIndices,
 #endif
                                    uint32_t x, uint32_t y, uint32_t z,
+                                   BlockAtlasCoord atlasCoord,
                                    ActiveFaces activeFaces)
     {
         const float minX = static_cast<float>(x);
@@ -175,10 +179,10 @@ namespace Minecraft::Graphics
         // Front (+Z)
         if (activeFaces.front)
         {
-            vertices.push_back({{maxX, maxY, maxZ}, {1.0f, 1.0f}});
-            vertices.push_back({{minX, minY, maxZ}, {0.0f, 0.0f}});
-            vertices.push_back({{maxX, minY, maxZ}, {1.0f, 0.0f}});
-            vertices.push_back({{minX, maxY, maxZ}, {0.0f, 1.0f}});
+            vertices.push_back({{maxX, maxY, maxZ}, atlasCoord.uvMax});
+            vertices.push_back({{minX, minY, maxZ}, atlasCoord.uvMin});
+            vertices.push_back({{maxX, minY, maxZ}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
+            vertices.push_back({{minX, maxY, maxZ}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
 #ifdef MC_DEBUG
             AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
 #else
@@ -189,10 +193,10 @@ namespace Minecraft::Graphics
         // Back (-Z)
         if (activeFaces.back)
         {
-            vertices.push_back({{minX, maxY, minZ}, {1.0f, 1.0f}});
-            vertices.push_back({{maxX, minY, minZ}, {0.0f, 0.0f}});
-            vertices.push_back({{minX, minY, minZ}, {1.0f, 0.0f}});
-            vertices.push_back({{maxX, maxY, minZ}, {0.0f, 1.0f}});
+            vertices.push_back({{minX, maxY, minZ}, atlasCoord.uvMax});
+            vertices.push_back({{maxX, minY, minZ}, atlasCoord.uvMin});
+            vertices.push_back({{minX, minY, minZ}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
+            vertices.push_back({{maxX, maxY, minZ}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
 #ifdef MC_DEBUG
             AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
 #else
@@ -203,10 +207,10 @@ namespace Minecraft::Graphics
         // Right (+X)
         if (activeFaces.right)
         {
-            vertices.push_back({{maxX, maxY, maxZ}, {1.0f, 1.0f}});
-            vertices.push_back({{maxX, minY, minZ}, {0.0f, 0.0f}});
-            vertices.push_back({{maxX, minY, maxZ}, {1.0f, 0.0f}});
-            vertices.push_back({{maxX, maxY, minZ}, {0.0f, 1.0f}});
+            vertices.push_back({{maxX, maxY, maxZ}, atlasCoord.uvMax});
+            vertices.push_back({{maxX, minY, minZ}, atlasCoord.uvMin});
+            vertices.push_back({{maxX, minY, maxZ}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
+            vertices.push_back({{maxX, maxY, minZ}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
 #ifdef MC_DEBUG
             AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
 #else
@@ -217,10 +221,10 @@ namespace Minecraft::Graphics
         // Left (-X)
         if (activeFaces.left)
         {
-            vertices.push_back({{minX, maxY, maxZ}, {1.0f, 1.0f}});
-            vertices.push_back({{minX, minY, minZ}, {0.0f, 0.0f}});
-            vertices.push_back({{minX, minY, maxZ}, {1.0f, 0.0f}});
-            vertices.push_back({{minX, maxY, minZ}, {0.0f, 1.0f}});
+            vertices.push_back({{minX, maxY, maxZ}, atlasCoord.uvMax});
+            vertices.push_back({{minX, minY, minZ}, atlasCoord.uvMin});
+            vertices.push_back({{minX, minY, maxZ}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
+            vertices.push_back({{minX, maxY, minZ}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
 #ifdef MC_DEBUG
             AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
 #else
@@ -231,10 +235,10 @@ namespace Minecraft::Graphics
         // Top (+Y)
         if (activeFaces.top)
         {
-            vertices.push_back({{maxX, maxY, minZ}, {1.0f, 1.0f}});
-            vertices.push_back({{minX, maxY, maxZ}, {0.0f, 0.0f}});
-            vertices.push_back({{maxX, maxY, maxZ}, {1.0f, 0.0f}});
-            vertices.push_back({{minX, maxY, minZ}, {0.0f, 1.0f}});
+            vertices.push_back({{maxX, maxY, minZ}, atlasCoord.uvMax});
+            vertices.push_back({{minX, maxY, maxZ}, atlasCoord.uvMin});
+            vertices.push_back({{maxX, maxY, maxZ}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
+            vertices.push_back({{minX, maxY, minZ}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
 #ifdef MC_DEBUG
             AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
 #else
@@ -245,10 +249,10 @@ namespace Minecraft::Graphics
         // Bottom (-Y)
         if (activeFaces.bottom)
         {
-            vertices.push_back({{maxX, minY, maxZ}, {1.0f, 1.0f}});
-            vertices.push_back({{minX, minY, minZ}, {0.0f, 0.0f}});
-            vertices.push_back({{maxX, minY, minZ}, {1.0f, 0.0f}});
-            vertices.push_back({{minX, minY, maxZ}, {0.0f, 1.0f}});
+            vertices.push_back({{maxX, minY, maxZ}, atlasCoord.uvMax});
+            vertices.push_back({{minX, minY, minZ}, atlasCoord.uvMin});
+            vertices.push_back({{maxX, minY, minZ}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
+            vertices.push_back({{minX, minY, maxZ}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
 #ifdef MC_DEBUG
             AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
 #else

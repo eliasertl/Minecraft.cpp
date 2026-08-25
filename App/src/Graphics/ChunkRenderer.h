@@ -3,6 +3,7 @@
 #include "Common/Memory.h"
 #include "Data/Chunk.h"
 #include "Graphics/GraphicsContext.h"
+#include "Graphics/BlockAtlas.h"
 
 #include <webgpu/webgpu_cpp.h>
 #include <vector>
@@ -13,7 +14,7 @@ namespace Minecraft::Graphics
     class ChunkRenderer
     {
     public:
-        ChunkRenderer(Data::Chunk &chunk, GraphicsContext &graphicsContext);
+        ChunkRenderer(Data::Chunk &chunk, GraphicsContext &graphicsContext, const BlockAtlas& blockAtlas);
         ~ChunkRenderer();
 
         void Render(wgpu::RenderPassEncoder encoder);
@@ -45,6 +46,7 @@ namespace Minecraft::Graphics
                         std::vector<uint32_t> &wireFrameIndices,
 #endif
                         uint32_t x, uint32_t y, uint32_t z,
+                        BlockAtlasCoord uvCoord,
                         ActiveFaces activeFaces = ActiveFaces());
 
         void AppendQuadIndices(std::vector<uint32_t> &indices,
@@ -57,6 +59,7 @@ namespace Minecraft::Graphics
 
     private:
         GraphicsContext &m_GraphicsContext;
+        const BlockAtlas& m_BlockAtlas;
         Data::Chunk &m_Chunk;
         wgpu::Buffer m_VertexBuffer;
         wgpu::Buffer m_IndexBuffer;

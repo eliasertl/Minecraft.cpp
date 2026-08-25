@@ -52,13 +52,13 @@ namespace Minecraft::Core
 
         m_TestChunk = CreateScope<Data::Chunk>();
         SetTestChunkRandom();
-        m_TestChunkRenderer = CreateScope<Graphics::ChunkRenderer>(*m_TestChunk, *m_GraphicsContext);
-        m_ChunkRenderManager = CreateScope<Graphics::ChunkRenderManager>(*m_GraphicsContext);
+        m_TestChunkRenderer = CreateScope<Graphics::ChunkRenderer>(*m_TestChunk, *m_GraphicsContext, *m_BlockAtlas);
+        m_ChunkRenderManager = CreateScope<Graphics::ChunkRenderManager>(*m_GraphicsContext, *m_BlockAtlas);
     }
 
     void Application::SetTestChunkRandom()
     {
-        auto gen = std::bind(std::uniform_int_distribution<>(0, 1), std::default_random_engine());
+        auto gen = std::bind(std::uniform_int_distribution<>(0, 4), std::default_random_engine());
         for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
         {
             for (uint16_t y = 0; y < Data::CHUNK_LENGTH; y++)
@@ -113,7 +113,10 @@ namespace Minecraft::Core
             {
                 for (uint16_t z = 0; z < Data::CHUNK_LENGTH; z++)
                 {
-                    m_TestChunk->setBlock(x, y, z, 1, 0);
+                    if(y == 0)
+                        m_TestChunk->setBlock(x, y, z, 1, 0);
+                    else
+                        m_TestChunk->setBlock(x, y, z, 2, 0);
                 }
             }
         }

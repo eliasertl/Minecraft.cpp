@@ -2,6 +2,7 @@
 
 #include "ChunkRenderer.h"
 #include "GraphicsContext.h"
+#include "BlockAtlas.h"
 #include "Data/Camera.h"
 #include <vector>
 #include <webgpu/webgpu_cpp.h>
@@ -12,7 +13,7 @@ namespace Minecraft::Graphics
     class ChunkRenderManager
     {
     public:
-        ChunkRenderManager(GraphicsContext& graphicsContext);
+        ChunkRenderManager(GraphicsContext& graphicsContext, const BlockAtlas& blockAtlas);
         ~ChunkRenderManager();
 
         void Render(std::vector<ChunkRenderer *> &renderers, const Data::Camera& camera, wgpu::RenderPassEncoder encoder);
@@ -26,6 +27,7 @@ namespace Minecraft::Graphics
 
     private:
         GraphicsContext& m_GraphicsContext;
+        const BlockAtlas& m_BlockAtlas;
         wgpu::RenderPipeline m_RenderPipeline;
         #ifdef MC_DEBUG
         wgpu::RenderPipeline m_RenderWireframePipeline;

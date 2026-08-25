@@ -5,6 +5,12 @@ struct CameraUniforms {
 @group(0) @binding(0)
 var<uniform> uCam: CameraUniforms;
 
+@group(0) @binding(1) 
+var atlasTexture: texture_2d<f32>;
+
+@group(0) @binding(2)
+var atlasSampler: sampler;
+
 struct VertexInput {
     @location(0) position: vec3f,
     @location(1) uv: vec2f,
@@ -30,6 +36,6 @@ struct FragmentOutput {
 @fragment
 fn fs_main(in: VertexOutput) -> FragmentOutput {
     var out: FragmentOutput;
-    out.color = vec4f(in.uv, 0.0, 1.0);
+    out.color = textureSample(atlasTexture, atlasSampler, in.uv);
     return out;
 }

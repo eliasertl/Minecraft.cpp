@@ -12,8 +12,8 @@ namespace Minecraft::Graphics
         glm::mat4 viewProjection;
     };
 
-    ChunkRenderManager::ChunkRenderManager(GraphicsContext &graphicsContext)
-        : m_GraphicsContext(graphicsContext)
+    ChunkRenderManager::ChunkRenderManager(GraphicsContext &graphicsContext, const BlockAtlas& blockAtlas)
+        : m_GraphicsContext(graphicsContext), m_BlockAtlas(blockAtlas)
     {
         InitCameraBuffer();
         InitPipeline();
@@ -112,15 +112,25 @@ namespace Minecraft::Graphics
         pipelineDesc.depthStencil = &depthStencilState;
 
         // Pipeline layout
-        wgpu::BindGroupLayoutEntry bindingLayout = {};
-        bindingLayout.binding = 0;
-        bindingLayout.visibility = wgpu::ShaderStage::Vertex;
-        bindingLayout.buffer.type = wgpu::BufferBindingType::Uniform;
-        bindingLayout.buffer.minBindingSize = sizeof(CameraUniforms);
+        std::vector<wgpu::BindGroupLayoutEntry> bindingLayouts(3);
+        bindingLayouts[0].binding = 0;
+        bindingLayouts[0].visibility = wgpu::ShaderStage::Vertex;
+        bindingLayouts[0].buffer.type = wgpu::BufferBindingType::Uniform;
+        bindingLayouts[0].buffer.minBindingSize = sizeof(CameraUniforms);
+
+        bindingLayouts[1].binding = 1;
+        bindingLayouts[1].visibility = wgpu::ShaderStage::Fragment;
+        bindingLayouts[1].texture.sampleType = wgpu::TextureSampleType::Float;
+        bindingLayouts[1].texture.viewDimension = wgpu::TextureViewDimension::e2D;
+
+        bindingLayouts[2].binding = 2;
+        bindingLayouts[2].visibility = wgpu::ShaderStage::Fragment;
+        bindingLayouts[2].sampler.type = wgpu::SamplerBindingType::Filtering;
+
 
         wgpu::BindGroupLayoutDescriptor bindGroupLayoutDesc = wgpu::BindGroupLayoutDescriptor{};
-        bindGroupLayoutDesc.entryCount = 1;
-        bindGroupLayoutDesc.entries = &bindingLayout;
+        bindGroupLayoutDesc.entryCount = bindingLayouts.size();
+        bindGroupLayoutDesc.entries = bindingLayouts.data();
         bindGroupLayoutDesc.nextInChain = nullptr;
         m_CameraBindGroupLayout = m_GraphicsContext.GetDevice().CreateBindGroupLayout(&bindGroupLayoutDesc);
 
@@ -131,16 +141,22 @@ namespace Minecraft::Graphics
         m_PipelineLayout = m_GraphicsContext.GetDevice().CreatePipelineLayout(&pipelineLayoutDesc);
         pipelineDesc.layout = m_PipelineLayout;
 
-        wgpu::BindGroupEntry bindGroupEntry = {};
-        bindGroupEntry.binding = 0;
-        bindGroupEntry.buffer = m_CameraUniformBuffer;
-        bindGroupEntry.offset = 0;
-        bindGroupEntry.size = sizeof(CameraUniforms);
+        std::vector<wgpu::BindGroupEntry> bindGroupEntries(3);
+        bindGroupEntries[0].binding = 0;
+        bindGroupEntries[0].buffer = m_CameraUniformBuffer;
+        bindGroupEntries[0].offset = 0;
+        bindGroupEntries[0].size = sizeof(CameraUniforms);
+
+        bindGroupEntries[1].binding = 1;
+        bindGroupEntries[1].textureView = m_BlockAtlas.GetTextureView();
+
+        bindGroupEntries[2].binding = 2;
+        bindGroupEntries[2].sampler = m_BlockAtlas.GetSampler();
 
         wgpu::BindGroupDescriptor bindGroupDesc = {};
         bindGroupDesc.layout = m_CameraBindGroupLayout;
-        bindGroupDesc.entryCount = 1;
-        bindGroupDesc.entries = &bindGroupEntry;
+        bindGroupDesc.entryCount = bindGroupEntries.size();
+        bindGroupDesc.entries = bindGroupEntries.data();
 
         m_CameraBindGroup = m_GraphicsContext.GetDevice().CreateBindGroup(&bindGroupDesc);
 
@@ -187,6 +203,7 @@ namespace Minecraft::Graphics
         }
 
         {
+            ZoneScopedN("Render");
             encoder.PushDebugGroup("ChunkRenderManager::Render");
             encoder.SetPipeline(m_RenderPipeline);
             encoder.SetBindGroup(0, m_CameraBindGroup);
