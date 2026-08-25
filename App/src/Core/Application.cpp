@@ -40,6 +40,14 @@ namespace Minecraft::Core
         Input::Init(m_Window.get());
 
         m_TestChunk = CreateScope<Data::Chunk>();
+        SetTestChunkRandom();
+
+        m_TestChunkRenderer = CreateScope<Graphics::ChunkRenderer>(*m_TestChunk, *m_GraphicsContext);
+        m_ChunkRenderManager = CreateScope<Graphics::ChunkRenderManager>(*m_GraphicsContext);
+    }
+
+    void Application::SetTestChunkRandom()
+    {
         auto gen = std::bind(std::uniform_int_distribution<>(0, 1), std::default_random_engine());
         for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
         {
@@ -52,9 +60,54 @@ namespace Minecraft::Core
             }
         }
         m_TestChunk->markDirty();
+    }
 
-        m_TestChunkRenderer = CreateScope<Graphics::ChunkRenderer>(*m_TestChunk, *m_GraphicsContext);
-        m_ChunkRenderManager = CreateScope<Graphics::ChunkRenderManager>(*m_GraphicsContext);
+    void Application::SetTestChunkFlat()
+    {
+        for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
+        {
+            for (uint16_t y = 0; y < Data::CHUNK_LENGTH; y++)
+            {
+                for (uint16_t z = 0; z < Data::CHUNK_LENGTH; z++)
+                {
+                    if (y == 0)
+                        m_TestChunk->setBlock(x, y, z, 1, 0);
+                    else
+                        m_TestChunk->setBlock(x, y, z, 0, 0);
+                }
+            }
+        }
+        m_TestChunk->markDirty();
+    }
+
+    void Application::SetTestChunkEmpty()
+    {
+        for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
+        {
+            for (uint16_t y = 0; y < Data::CHUNK_LENGTH; y++)
+            {
+                for (uint16_t z = 0; z < Data::CHUNK_LENGTH; z++)
+                {
+                    m_TestChunk->setBlock(x, y, z, 0, 0);
+                }
+            }
+        }
+        m_TestChunk->markDirty();
+    }
+
+    void Application::SetTestChunkFull()
+    {
+        for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
+        {
+            for (uint16_t y = 0; y < Data::CHUNK_LENGTH; y++)
+            {
+                for (uint16_t z = 0; z < Data::CHUNK_LENGTH; z++)
+                {
+                    m_TestChunk->setBlock(x, y, z, 1, 0);
+                }
+            }
+        }
+        m_TestChunk->markDirty();
     }
 
     Application::~Application()
@@ -90,6 +143,22 @@ namespace Minecraft::Core
         #ifdef MC_DEBUG
         ImGui::Checkbox("Render Wireframe", &s_ApplicationSettings.renderWireframe);
         #endif
+        if (ImGui::Button("Random Chunk"))
+        {
+            SetTestChunkRandom();
+        }
+        if (ImGui::Button("Flat Chunk"))
+        {
+            SetTestChunkFlat();
+        }
+        if (ImGui::Button("Empty Chunk"))
+        {
+            SetTestChunkEmpty();
+        }
+        if (ImGui::Button("Full Chunk"))
+        {
+            SetTestChunkFull();
+        }
         ImGui::End();
     }
 

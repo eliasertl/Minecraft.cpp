@@ -19,22 +19,39 @@ namespace Minecraft::Graphics
         void Render(wgpu::RenderPassEncoder encoder);
 #ifdef MC_DEBUG
         void RenderWireframe(wgpu::RenderPassEncoder encoder);
+
 #endif
 
-    private:  
+    private:
         struct Vertex
         {
             glm::vec3 position;
             glm::vec2 uv;
         };
-        
+        struct ActiveFaces
+        {
+            bool front = false;
+            bool back = false;
+            bool right = false;
+            bool left = false;
+            bool top = false;
+            bool bottom = false;
+        };
+
         void BuildMesh();
         void CreateCube(std::vector<Vertex> &vertices,
                         std::vector<uint32_t> &indices,
-                        #ifdef MC_DEBUG
+#ifdef MC_DEBUG
                         std::vector<uint32_t> &wireFrameIndices,
-                        #endif
-                        uint32_t x, uint32_t y, uint32_t z);
+#endif
+                        uint32_t x, uint32_t y, uint32_t z,
+                        ActiveFaces activeFaces = ActiveFaces());
+
+        void AppendQuadIndices(std::vector<uint32_t> &indices,
+#ifdef MC_DEBUG
+                               std::vector<uint32_t> &wireFrameIndices,
+#endif
+                               uint32_t faceBase);
 
         void InitBuffers();
 

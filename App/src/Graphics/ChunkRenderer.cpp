@@ -105,10 +105,24 @@ namespace Minecraft::Graphics
                     if (!block || block->id == 0)
                         continue;
 
+                    ActiveFaces activeFaces;
+                    if (x == 0 || !m_Chunk.getBlock(x - 1, y, z) || m_Chunk.getBlock(x - 1, y, z)->id == 0)
+                        activeFaces.left = true;
+                    if (x == Data::CHUNK_LENGTH - 1 || !m_Chunk.getBlock(x + 1, y, z) || m_Chunk.getBlock(x + 1, y, z)->id == 0)
+                        activeFaces.right = true;
+                    if (y == 0 || !m_Chunk.getBlock(x, y - 1, z) || m_Chunk.getBlock(x, y - 1, z)->id == 0)
+                        activeFaces.bottom = true;
+                    if (y == Data::CHUNK_LENGTH - 1 || !m_Chunk.getBlock(x, y + 1, z) || m_Chunk.getBlock(x, y + 1, z)->id == 0)
+                        activeFaces.top = true;
+                    if (z == 0 || !m_Chunk.getBlock(x, y, z - 1) || m_Chunk.getBlock(x, y, z - 1)->id == 0)
+                        activeFaces.back = true;
+                    if (z == Data::CHUNK_LENGTH - 1 || !m_Chunk.getBlock(x, y, z + 1) || m_Chunk.getBlock(x, y, z + 1)->id == 0)
+                        activeFaces.front = true;
+
 #ifdef MC_DEBUG
-                    CreateCube(vertices, indices, wireFrameIndices, x, y, z);
+                    CreateCube(vertices, indices, wireFrameIndices, x, y, z, activeFaces);
 #else
-                    CreateCube(vertices, indices, x, y, z);
+                    CreateCube(vertices, indices, x, y, z, activeFaces);
 #endif
                 }
             }
@@ -142,7 +156,8 @@ namespace Minecraft::Graphics
 #ifdef MC_DEBUG
                                    std::vector<uint32_t> &wireFrameIndices,
 #endif
-                                   uint32_t x, uint32_t y, uint32_t z)
+                                   uint32_t x, uint32_t y, uint32_t z,
+                                   ActiveFaces activeFaces)
     {
         const float minX = static_cast<float>(x);
         const float minY = static_cast<float>(y);
@@ -152,68 +167,116 @@ namespace Minecraft::Graphics
         const float maxY = minY + 1.0f;
         const float maxZ = minZ + 1.0f;
 
-        const uint32_t baseIndex = static_cast<uint32_t>(vertices.size());
-
         // Front (+Z)
-        vertices.push_back({{maxX, maxY, maxZ}, {1.0f, 1.0f}});
-        vertices.push_back({{minX, minY, maxZ}, {0.0f, 0.0f}});
-        vertices.push_back({{maxX, minY, maxZ}, {1.0f, 0.0f}});
-        vertices.push_back({{minX, maxY, maxZ}, {0.0f, 1.0f}});
-
-        // Back (-Z)
-        vertices.push_back({{minX, maxY, minZ}, {1.0f, 1.0f}});
-        vertices.push_back({{maxX, minY, minZ}, {0.0f, 0.0f}});
-        vertices.push_back({{minX, minY, minZ}, {1.0f, 0.0f}});
-        vertices.push_back({{maxX, maxY, minZ}, {0.0f, 1.0f}});
-
-        // Right (+X)
-        vertices.push_back({{maxX, maxY, minZ}, {1.0f, 1.0f}});
-        vertices.push_back({{maxX, minY, maxZ}, {0.0f, 0.0f}});
-        vertices.push_back({{maxX, minY, minZ}, {1.0f, 0.0f}});
-        vertices.push_back({{maxX, maxY, maxZ}, {0.0f, 1.0f}});
-
-        // Left (-X)
-        vertices.push_back({{minX, maxY, maxZ}, {1.0f, 1.0f}});
-        vertices.push_back({{minX, minY, minZ}, {0.0f, 0.0f}});
-        vertices.push_back({{minX, minY, maxZ}, {1.0f, 0.0f}});
-        vertices.push_back({{minX, maxY, minZ}, {0.0f, 1.0f}});
-
-        // Top (+Y)
-        vertices.push_back({{maxX, maxY, minZ}, {1.0f, 1.0f}});
-        vertices.push_back({{minX, maxY, maxZ}, {0.0f, 0.0f}});
-        vertices.push_back({{maxX, maxY, maxZ}, {1.0f, 0.0f}});
-        vertices.push_back({{minX, maxY, minZ}, {0.0f, 1.0f}});
-
-        // Bottom (-Y)
-        vertices.push_back({{maxX, minY, maxZ}, {1.0f, 1.0f}});
-        vertices.push_back({{minX, minY, minZ}, {0.0f, 0.0f}});
-        vertices.push_back({{maxX, minY, minZ}, {1.0f, 0.0f}});
-        vertices.push_back({{minX, minY, maxZ}, {0.0f, 1.0f}});
-
-        for (uint32_t face = 0; face < 6; ++face)
+        if (activeFaces.front)
         {
-            const uint32_t faceBase = baseIndex + face * 4;
-
-            indices.push_back(faceBase + 0);
-            indices.push_back(faceBase + 1);
-            indices.push_back(faceBase + 2);
-
-            indices.push_back(faceBase + 0);
-            indices.push_back(faceBase + 3);
-            indices.push_back(faceBase + 1);
-
+            vertices.push_back({{maxX, maxY, maxZ}, {1.0f, 1.0f}});
+            vertices.push_back({{minX, minY, maxZ}, {0.0f, 0.0f}});
+            vertices.push_back({{maxX, minY, maxZ}, {1.0f, 0.0f}});
+            vertices.push_back({{minX, maxY, maxZ}, {0.0f, 1.0f}});
 #ifdef MC_DEBUG
-            wireFrameIndices.push_back(faceBase + 0);
-            wireFrameIndices.push_back(faceBase + 1);
-            wireFrameIndices.push_back(faceBase + 1);
-            wireFrameIndices.push_back(faceBase + 2);
-            wireFrameIndices.push_back(faceBase + 2);
-            wireFrameIndices.push_back(faceBase + 0);
-            wireFrameIndices.push_back(faceBase + 0);
-            wireFrameIndices.push_back(faceBase + 3);
-            wireFrameIndices.push_back(faceBase + 3);
-            wireFrameIndices.push_back(faceBase + 1);
+            AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
+#else
+            AppendQuadIndices(indices, static_cast<uint32_t>(vertices.size()) - 4);
 #endif
         }
+
+        // Back (-Z)
+        if (activeFaces.back)
+        {
+            vertices.push_back({{minX, maxY, minZ}, {1.0f, 1.0f}});
+            vertices.push_back({{maxX, minY, minZ}, {0.0f, 0.0f}});
+            vertices.push_back({{minX, minY, minZ}, {1.0f, 0.0f}});
+            vertices.push_back({{maxX, maxY, minZ}, {0.0f, 1.0f}});
+#ifdef MC_DEBUG
+            AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
+#else
+            AppendQuadIndices(indices, static_cast<uint32_t>(vertices.size()) - 4);
+#endif
+        }
+
+        // Right (+X)
+        if (activeFaces.right)
+        {
+            vertices.push_back({{maxX, maxY, maxZ}, {1.0f, 1.0f}});
+            vertices.push_back({{maxX, minY, minZ}, {0.0f, 0.0f}});
+            vertices.push_back({{maxX, minY, maxZ}, {1.0f, 0.0f}});
+            vertices.push_back({{maxX, maxY, minZ}, {0.0f, 1.0f}});
+#ifdef MC_DEBUG
+            AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
+#else
+            AppendQuadIndices(indices, static_cast<uint32_t>(vertices.size()) - 4);
+#endif
+        }
+
+        // Left (-X)
+        if (activeFaces.left)
+        {
+            vertices.push_back({{minX, maxY, maxZ}, {1.0f, 1.0f}});
+            vertices.push_back({{minX, minY, minZ}, {0.0f, 0.0f}});
+            vertices.push_back({{minX, minY, maxZ}, {1.0f, 0.0f}});
+            vertices.push_back({{minX, maxY, minZ}, {0.0f, 1.0f}});
+#ifdef MC_DEBUG
+            AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
+#else
+            AppendQuadIndices(indices, static_cast<uint32_t>(vertices.size()) - 4);
+#endif
+        }
+
+        // Top (+Y)
+        if (activeFaces.top)
+        {
+            vertices.push_back({{maxX, maxY, minZ}, {1.0f, 1.0f}});
+            vertices.push_back({{minX, maxY, maxZ}, {0.0f, 0.0f}});
+            vertices.push_back({{maxX, maxY, maxZ}, {1.0f, 0.0f}});
+            vertices.push_back({{minX, maxY, minZ}, {0.0f, 1.0f}});
+#ifdef MC_DEBUG
+            AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
+#else
+            AppendQuadIndices(indices, static_cast<uint32_t>(vertices.size()) - 4);
+#endif
+        }
+
+        // Bottom (-Y)
+        if (activeFaces.bottom)
+        {
+            vertices.push_back({{maxX, minY, maxZ}, {1.0f, 1.0f}});
+            vertices.push_back({{minX, minY, minZ}, {0.0f, 0.0f}});
+            vertices.push_back({{maxX, minY, minZ}, {1.0f, 0.0f}});
+            vertices.push_back({{minX, minY, maxZ}, {0.0f, 1.0f}});
+#ifdef MC_DEBUG
+            AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
+#else
+            AppendQuadIndices(indices, static_cast<uint32_t>(vertices.size()) - 4);
+#endif
+        }
+    }
+
+    void ChunkRenderer::AppendQuadIndices(std::vector<uint32_t> &indices,
+#ifdef MC_DEBUG
+                                          std::vector<uint32_t> &wireFrameIndices,
+#endif
+                                          uint32_t faceBase)
+    {
+        indices.push_back(faceBase + 0);
+        indices.push_back(faceBase + 1);
+        indices.push_back(faceBase + 2);
+
+        indices.push_back(faceBase + 0);
+        indices.push_back(faceBase + 3);
+        indices.push_back(faceBase + 1);
+
+#ifdef MC_DEBUG
+        wireFrameIndices.push_back(faceBase + 0);
+        wireFrameIndices.push_back(faceBase + 1);
+        wireFrameIndices.push_back(faceBase + 1);
+        wireFrameIndices.push_back(faceBase + 2);
+        wireFrameIndices.push_back(faceBase + 2);
+        wireFrameIndices.push_back(faceBase + 0);
+        wireFrameIndices.push_back(faceBase + 0);
+        wireFrameIndices.push_back(faceBase + 3);
+        wireFrameIndices.push_back(faceBase + 3);
+        wireFrameIndices.push_back(faceBase + 1);
+#endif
     }
 }

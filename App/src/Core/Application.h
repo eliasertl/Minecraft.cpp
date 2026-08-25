@@ -29,6 +29,11 @@ namespace Minecraft::Core
         void OnUpdate(float deltaTime);
         void OnFrameEnd();
 
+        void SetTestChunkRandom();
+        void SetTestChunkFlat();
+        void SetTestChunkEmpty();
+        void SetTestChunkFull();
+
     private:
         static Application* s_Instance;
         Scope<Graphics::Window> m_Window;
