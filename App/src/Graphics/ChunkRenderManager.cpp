@@ -101,7 +101,7 @@ namespace Minecraft::Graphics
         pipelineDesc.primitive.topology = wgpu::PrimitiveTopology::TriangleList;
         pipelineDesc.primitive.stripIndexFormat = wgpu::IndexFormat::Undefined;
         pipelineDesc.primitive.frontFace = wgpu::FrontFace::CCW;
-        pipelineDesc.primitive.cullMode = wgpu::CullMode::None;
+        pipelineDesc.primitive.cullMode = wgpu::CullMode::Back;
 
         // Multisample state
         pipelineDesc.multisample.count = 1;

@@ -37,7 +37,10 @@ namespace Minecraft::Core
         m_GraphicsContext = CreateScope<Graphics::GraphicsContext>(*m_Window);
         m_Camera = CreateScope<Data::Camera>(*m_Window);
         m_Camera->SetViewSize(static_cast<float>(m_Window->GetWidth()), static_cast<float>(m_Window->GetHeight()));
-        m_Camera->SetTransform(glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, Data::CHUNK_LENGTH * 1.5f)));
+        glm::mat4 cameraTransform = glm::mat4(1.0f);
+        cameraTransform = glm::translate(cameraTransform, glm::vec3(Data::CHUNK_LENGTH * 0.5f, Data::CHUNK_LENGTH * 1.5f, Data::CHUNK_LENGTH * 1.5f));
+        cameraTransform = glm::rotate(cameraTransform, glm::radians(-30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        m_Camera->SetTransform(cameraTransform);
         m_ImGuiContext = CreateScope<Graphics::ImGuiContext>(*m_Window, m_GraphicsContext->GetDevice(), m_GraphicsContext->GetQueue(), m_GraphicsContext->GetSurfaceFormat(), m_GraphicsContext->GetDepthFormat());
         Input::Init(m_Window.get());
 
