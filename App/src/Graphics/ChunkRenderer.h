@@ -14,7 +14,7 @@ namespace Minecraft::Graphics
     class ChunkRenderer
     {
     public:
-        ChunkRenderer(Data::Chunk &chunk, GraphicsContext &graphicsContext, const BlockAtlas& blockAtlas);
+        ChunkRenderer(Data::Chunk &chunk, GraphicsContext &graphicsContext, const BlockAtlas &blockAtlas);
         ~ChunkRenderer();
 
         void Render(wgpu::RenderPassEncoder encoder);
@@ -54,13 +54,14 @@ namespace Minecraft::Graphics
 #ifdef MC_DEBUG
                                std::vector<uint32_t> &wireFrameIndices,
 #endif
-                               uint32_t faceBase);
+                               uint32_t faceBase,
+                               bool invertWindingOrder = false);
 
         void InitBuffers();
 
     private:
         GraphicsContext &m_GraphicsContext;
-        const BlockAtlas& m_BlockAtlas;
+        const BlockAtlas &m_BlockAtlas;
         Data::Chunk &m_Chunk;
         wgpu::Buffer m_VertexBuffer;
         wgpu::Buffer m_IndexBuffer;

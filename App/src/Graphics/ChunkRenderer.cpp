@@ -213,9 +213,9 @@ namespace Minecraft::Graphics
             vertices.push_back({{maxX, minY, maxZ}, {1, 0, 0}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
             vertices.push_back({{maxX, maxY, minZ}, {1, 0, 0}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
 #ifdef MC_DEBUG
-            AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
+            AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4, true);
 #else
-            AppendQuadIndices(indices, static_cast<uint32_t>(vertices.size()) - 4);
+            AppendQuadIndices(indices, static_cast<uint32_t>(vertices.size()) - 4, true);
 #endif
         }
 
@@ -266,15 +266,29 @@ namespace Minecraft::Graphics
 #ifdef MC_DEBUG
                                           std::vector<uint32_t> &wireFrameIndices,
 #endif
-                                          uint32_t faceBase)
+                                          uint32_t faceBase,
+                                          bool invertWindingOrder)
     {
-        indices.push_back(faceBase + 0);
-        indices.push_back(faceBase + 1);
-        indices.push_back(faceBase + 2);
+        if (invertWindingOrder)
+        {
+            indices.push_back(faceBase + 0);
+            indices.push_back(faceBase + 2);
+            indices.push_back(faceBase + 1);
 
-        indices.push_back(faceBase + 0);
-        indices.push_back(faceBase + 3);
-        indices.push_back(faceBase + 1);
+            indices.push_back(faceBase + 0);
+            indices.push_back(faceBase + 1);
+            indices.push_back(faceBase + 3);
+        }
+        else
+        {
+            indices.push_back(faceBase + 0);
+            indices.push_back(faceBase + 1);
+            indices.push_back(faceBase + 2);
+
+            indices.push_back(faceBase + 0);
+            indices.push_back(faceBase + 3);
+            indices.push_back(faceBase + 1);
+        }
 
 #ifdef MC_DEBUG
         wireFrameIndices.push_back(faceBase + 0);
