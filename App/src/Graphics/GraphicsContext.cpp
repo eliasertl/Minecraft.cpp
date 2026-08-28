@@ -116,6 +116,7 @@ namespace Minecraft::Graphics
                     "Dawn uncaptured error [{}]: {}",
                     static_cast<uint32_t>(type),
                     message);
+                __debugbreak();
             });
         TracyWebGPUSetupDeviceDescriptor(reinterpret_cast<WGPUDeviceDescriptor &>(deviceDescriptor));
 
@@ -169,7 +170,7 @@ namespace Minecraft::Graphics
 
         wgpu::TextureDescriptor depthTextureDesc{};
         depthTextureDesc.nextInChain = nullptr;
-        depthTextureDesc.label = "Depth Texture";
+        depthTextureDesc.label = "[GraphicsContext] Depth Texture";
         depthTextureDesc.size.width = m_Window.GetWidth();
         depthTextureDesc.size.height = m_Window.GetHeight();
         depthTextureDesc.size.depthOrArrayLayers = 1;
@@ -244,7 +245,7 @@ namespace Minecraft::Graphics
                 m_DepthTextureView = nullptr;
 
                 wgpu::TextureDescriptor depthTextureDesc{};
-                depthTextureDesc.label = "Depth Texture";
+                depthTextureDesc.label = "[GraphicsContext] Depth Texture";
                 depthTextureDesc.size = {width, height, 1};
                 depthTextureDesc.mipLevelCount = 1;
                 depthTextureDesc.sampleCount = 1;
@@ -285,7 +286,7 @@ namespace Minecraft::Graphics
             ZoneScopedN("Create Surface Texture View");
 
             wgpu::TextureViewDescriptor viewDesc{};
-            viewDesc.label = "Surface Texture View";
+            viewDesc.label = "[GraphicsContext] Surface Texture View";
             viewDesc.format = surfaceTexture.texture.GetFormat();
             viewDesc.dimension = wgpu::TextureViewDimension::e2D;
             viewDesc.baseMipLevel = 0;

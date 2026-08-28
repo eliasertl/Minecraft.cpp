@@ -206,7 +206,7 @@ namespace Minecraft::Graphics
 
         // Create GPU side texture atlas
         wgpu::TextureDescriptor textureDesc{};
-        textureDesc.label = "Block Texture Atlas";
+        textureDesc.label = "[BlockAtlas] Texture Atlas";
         textureDesc.size = {m_Width, m_Height, 1};
         textureDesc.mipLevelCount = 1;
         textureDesc.sampleCount = 1;
@@ -217,7 +217,7 @@ namespace Minecraft::Graphics
         m_AtlasTexture = m_Context.GetDevice().CreateTexture(&textureDesc);
 
         wgpu::TextureViewDescriptor viewDesc{};
-        viewDesc.label = "Block Texture Atlas View";
+        viewDesc.label = "[BlockAtlas] Texture Atlas View";
         viewDesc.format = wgpu::TextureFormat::RGBA8Unorm;
         viewDesc.dimension = wgpu::TextureViewDimension::e2D;
         viewDesc.baseMipLevel = 0;

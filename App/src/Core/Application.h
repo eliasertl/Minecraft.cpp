@@ -5,13 +5,15 @@
 #include "Graphics/GraphicsContext.h"
 #include "Graphics/ImGuiContext.h"
 #include "Graphics/ChunkRenderer.h"
-#include "Graphics/ChunkRenderManager.h"
+#include "Graphics/ShaderSystems/TerrainRenderer.h"
+#include "Graphics/ShaderSystems/WireframeRenderer.h"
 #include "Graphics/BlockAtlas.h"
 #include "Data/BlockTypes.h"
 #include "Data/Chunk.h"
 #include "Data/Camera.h"
 
 #include <glm/glm.hpp>
+#include <webgpu/webgpu_cpp.h>
 
 namespace Minecraft::Core
 {
@@ -23,7 +25,12 @@ namespace Minecraft::Core
 
         void Run();
 
-        static Application& Get() { return *s_Instance; }
+        static Application &Get() { return *s_Instance; }
+        
+        struct CameraUniforms
+        {
+            glm::mat4 viewProjection;
+        };
 
     private:
         void OnFrameStart();
@@ -37,15 +44,17 @@ namespace Minecraft::Core
         void SetTestChunkFull();
 
     private:
-        static Application* s_Instance;
+        static Application *s_Instance;
         float m_SmoothedDeltaTime = 0.016f;
+        wgpu::Buffer m_CameraUniformBuffer;
         Scope<Graphics::Window> m_Window;
         Scope<Graphics::GraphicsContext> m_GraphicsContext;
         Scope<Graphics::ImGuiContext> m_ImGuiContext;
         Scope<Data::Chunk> m_TestChunk;
         Scope<Data::Camera> m_Camera;
         Scope<Graphics::ChunkRenderer> m_TestChunkRenderer;
-        Scope<Graphics::ChunkRenderManager> m_ChunkRenderManager;
+        Scope<Graphics::TerrainRenderer> m_TerrainRenderer;
+        Scope<Graphics::WireframeRenderer> m_WireframeRenderer;
         Scope<Graphics::BlockAtlas> m_BlockAtlas;
     };
 }

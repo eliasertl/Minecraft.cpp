@@ -16,48 +16,52 @@ namespace Minecraft::Graphics
     void ChunkRenderer::InitBuffers()
     {
         // Vertex Buffer
-        uint32_t vertexBufferSize = (m_VertexCount > 0) ? m_VertexCount * sizeof(Vertex) : 128 * sizeof(Vertex);
+        uint32_t vertexBufferSize = (m_VertexCount > 0) ? m_VertexCount * sizeof(TerrainVertex) : 128 * sizeof(TerrainVertex);
         wgpu::BufferDescriptor vertexBufferDesc = {};
+        vertexBufferDesc.label = "[ChunkRenderer] Vertex Buffer";
         vertexBufferDesc.size = vertexBufferSize;
         vertexBufferDesc.usage = wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst;
         vertexBufferDesc.mappedAtCreation = false;
         m_VertexBuffer = m_GraphicsContext.GetDevice().CreateBuffer(&vertexBufferDesc);
-        m_AllocatedVertexCount = vertexBufferSize / sizeof(Vertex);
+        m_AllocatedVertexCount = vertexBufferSize / sizeof(TerrainVertex);
 
         // Index Buffer
         uint32_t indexBufferSize = (m_IndexCount > 0) ? m_IndexCount * sizeof(uint32_t) : 128 * sizeof(uint32_t);
         wgpu::BufferDescriptor indexBufferDesc = {};
+        indexBufferDesc.label = "[ChunkRenderer] Index Buffer";
         indexBufferDesc.size = indexBufferSize;
         indexBufferDesc.usage = wgpu::BufferUsage::Index | wgpu::BufferUsage::CopyDst;
         indexBufferDesc.mappedAtCreation = false;
         m_IndexBuffer = m_GraphicsContext.GetDevice().CreateBuffer(&indexBufferDesc);
         m_AllocatedIndexCount = indexBufferSize / sizeof(uint32_t);
 
-#ifdef MC_DEBUG
+        // Wireframe Vertex Buffer
+        uint32_t wireframeVertexBufferSize = (m_WireframeVertexCount > 0) ? m_WireframeVertexCount * sizeof(WireframeVertex) : 128 * sizeof(WireframeVertex);
+        wgpu::BufferDescriptor wireframeVertexBufferDesc = {};
+        wireframeVertexBufferDesc.label = "[ChunkRenderer] Wireframe Vertex Buffer";
+        wireframeVertexBufferDesc.size = wireframeVertexBufferSize;
+        wireframeVertexBufferDesc.usage = wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst;
+        wireframeVertexBufferDesc.mappedAtCreation = false;
+        m_WireframeVertexBuffer = m_GraphicsContext.GetDevice().CreateBuffer(&wireframeVertexBufferDesc);
+        m_AllocatedWireframeVertexCount = wireframeVertexBufferSize / sizeof(WireframeVertex);
+
         // Wireframe Index Buffer
         uint32_t wireframeIndexBufferSize = (m_WireframeIndexCount > 0) ? m_WireframeIndexCount * sizeof(uint32_t) : 128 * sizeof(uint32_t);
         wgpu::BufferDescriptor wireframeIndexBufferDesc = {};
+        wireframeIndexBufferDesc.label = "[ChunkRenderer] Wireframe Index Buffer";
         wireframeIndexBufferDesc.size = wireframeIndexBufferSize;
         wireframeIndexBufferDesc.usage = wgpu::BufferUsage::Index | wgpu::BufferUsage::CopyDst;
         wireframeIndexBufferDesc.mappedAtCreation = false;
         m_WireframeIndexBuffer = m_GraphicsContext.GetDevice().CreateBuffer(&wireframeIndexBufferDesc);
         m_AllocatedWireframeIndexCount = wireframeIndexBufferSize / sizeof(uint32_t);
-#endif
-
-#ifndef MC_DEBUG
-        LOG_INFO("Initialized buffers: VertexCount = {}, AllocatedVertexCount = {}, IndexCount = {}, AllocatedIndexCount = {}", m_VertexCount, m_AllocatedVertexCount, m_IndexCount, m_AllocatedIndexCount);
-#else
-        LOG_INFO("Initialized buffers: VertexCount = {}, AllocatedVertexCount = {}, IndexCount = {}, AllocatedIndexCount = {}, WireframeIndexCount = {}, AllocatedWireframeIndexCount = {}", m_VertexCount, m_AllocatedVertexCount, m_IndexCount, m_AllocatedIndexCount, m_WireframeIndexCount, m_AllocatedWireframeIndexCount);
-#endif
     }
 
     ChunkRenderer::~ChunkRenderer()
     {
         m_VertexBuffer = nullptr;
         m_IndexBuffer = nullptr;
-#ifdef MC_DEBUG
+
         m_WireframeIndexBuffer = nullptr;
-#endif
     }
 
     void ChunkRenderer::Render(wgpu::RenderPassEncoder encoder)
@@ -84,7 +88,7 @@ namespace Minecraft::Graphics
             BuildMesh();
             m_Chunk.markClean();
         }
-        encoder.SetVertexBuffer(0, m_VertexBuffer);
+        encoder.SetVertexBuffer(0, m_WireframeVertexBuffer);
         encoder.SetIndexBuffer(m_WireframeIndexBuffer, wgpu::IndexFormat::Uint32);
         encoder.DrawIndexed(m_WireframeIndexCount, 1, 0, 0, 0);
         encoder.PopDebugGroup();
@@ -93,13 +97,15 @@ namespace Minecraft::Graphics
     void ChunkRenderer::BuildMesh()
     {
         ZoneScoped;
-        std::vector<Vertex> vertices;
-        std::vector<uint32_t> indices;
-        std::vector<uint32_t> wireFrameIndices;
+        std::vector<TerrainVertex> vertices;
+        std::vector<uint32_t> indices;       
+        std::vector<WireframeVertex> wireframeVertices;
+        std::vector<uint32_t> wireframeIndices;
 
         vertices.reserve(Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * 24);
         indices.reserve(Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * 36);
-        wireFrameIndices.reserve(Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * 60);
+        wireframeVertices.reserve(Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * 24);
+        wireframeIndices.reserve(Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * 60);
 
         for (uint32_t x = 0; x < Data::CHUNK_LENGTH; ++x)
         {
@@ -128,43 +134,35 @@ namespace Minecraft::Graphics
                     // minus one because AIR=0
                     const Data::BlockType &blockType = Data::BlockTypes::getRegisteredBlockTypes()[block->id - 1];
                     BlockAtlasCoord atlasCoord = m_BlockAtlas.GetBlockTextureCoord(blockType.textureId);
-#ifdef MC_DEBUG
-                    CreateCube(vertices, indices, wireFrameIndices, x, y, z, atlasCoord, activeFaces);
-#else
-                    CreateCube(vertices, indices, x, y, z, atlasCoord, activeFaces);
-#endif
+
+                    CreateCube(vertices, indices, wireframeVertices, wireframeIndices, x, y, z, atlasCoord, activeFaces);
                 }
             }
         }
 
         m_VertexCount = static_cast<uint32_t>(vertices.size());
         m_IndexCount = static_cast<uint32_t>(indices.size());
-#ifdef MC_DEBUG
-        m_WireframeIndexCount = static_cast<uint32_t>(wireFrameIndices.size());
-#endif
+        m_WireframeVertexCount = static_cast<uint32_t>(wireframeVertices.size());
+        m_WireframeIndexCount = static_cast<uint32_t>(wireframeIndices.size());
 
         if (m_VertexCount > m_AllocatedVertexCount || m_IndexCount > m_AllocatedIndexCount
-#ifdef MC_DEBUG
-            || m_WireframeIndexCount > m_AllocatedWireframeIndexCount
-#endif
+            || m_WireframeIndexCount > m_AllocatedWireframeIndexCount || m_WireframeVertexCount > m_AllocatedWireframeVertexCount
         )
         {
             LOG_INFO("Reallocating buffers: VertexCount = {}, AllocatedVertexCount = {}, IndexCount = {}, AllocatedIndexCount = {}", m_VertexCount, m_AllocatedVertexCount, m_IndexCount, m_AllocatedIndexCount);
             InitBuffers();
         }
 
-        m_GraphicsContext.GetQueue().WriteBuffer(m_VertexBuffer, 0, vertices.data(), m_VertexCount * sizeof(Vertex));
+        m_GraphicsContext.GetQueue().WriteBuffer(m_VertexBuffer, 0, vertices.data(), m_VertexCount * sizeof(TerrainVertex));
         m_GraphicsContext.GetQueue().WriteBuffer(m_IndexBuffer, 0, indices.data(), m_IndexCount * sizeof(uint32_t));
-#ifdef MC_DEBUG
-        m_GraphicsContext.GetQueue().WriteBuffer(m_WireframeIndexBuffer, 0, wireFrameIndices.data(), m_WireframeIndexCount * sizeof(uint32_t));
-#endif
+        m_GraphicsContext.GetQueue().WriteBuffer(m_WireframeVertexBuffer, 0, wireframeVertices.data(), m_WireframeVertexCount * sizeof(WireframeVertex));   
+        m_GraphicsContext.GetQueue().WriteBuffer(m_WireframeIndexBuffer, 0, wireframeIndices.data(), m_WireframeIndexCount * sizeof(uint32_t));
     }
 
-    void ChunkRenderer::CreateCube(std::vector<Vertex> &vertices,
+    void ChunkRenderer::CreateCube(std::vector<TerrainVertex> &vertices,
                                    std::vector<uint32_t> &indices,
-#ifdef MC_DEBUG
-                                   std::vector<uint32_t> &wireFrameIndices,
-#endif
+                                   std::vector<WireframeVertex> &wireframeVertices,
+                                   std::vector<uint32_t> &wireframeIndices,
                                    uint32_t x, uint32_t y, uint32_t z,
                                    BlockAtlasCoord atlasCoord,
                                    ActiveFaces activeFaces)
@@ -177,6 +175,8 @@ namespace Minecraft::Graphics
         const float maxY = minY + 1.0f;
         const float maxZ = minZ + 1.0f;
 
+        const glm::vec3 color(1.0f, 1.0f, 1.0f);
+
         // Front (+Z)
         if (activeFaces.front)
         {
@@ -184,11 +184,13 @@ namespace Minecraft::Graphics
             vertices.push_back({{minX, minY, maxZ}, {0, 0, 1}, atlasCoord.uvMin});
             vertices.push_back({{maxX, minY, maxZ}, {0, 0, 1}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
             vertices.push_back({{minX, maxY, maxZ}, {0, 0, 1}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
-#ifdef MC_DEBUG
-            AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
-#else
-            AppendQuadIndices(indices, static_cast<uint32_t>(vertices.size()) - 4);
-#endif
+
+            wireframeVertices.push_back({{maxX, maxY, maxZ}, color});
+            wireframeVertices.push_back({{minX, minY, maxZ}, color});
+            wireframeVertices.push_back({{maxX, minY, maxZ}, color});
+            wireframeVertices.push_back({{minX, maxY, maxZ}, color});
+
+            AppendQuadIndices(indices, wireframeIndices, static_cast<uint32_t>(vertices.size()) - 4);
         }
 
         // Back (-Z)
@@ -198,11 +200,13 @@ namespace Minecraft::Graphics
             vertices.push_back({{maxX, minY, minZ}, {0, 0, -1}, atlasCoord.uvMin});
             vertices.push_back({{minX, minY, minZ}, {0, 0, -1}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
             vertices.push_back({{maxX, maxY, minZ}, {0, 0, -1}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
-#ifdef MC_DEBUG
-            AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
-#else
-            AppendQuadIndices(indices, static_cast<uint32_t>(vertices.size()) - 4);
-#endif
+            
+            wireframeVertices.push_back({{minX, maxY, minZ}, color});
+            wireframeVertices.push_back({{maxX, minY, minZ}, color});
+            wireframeVertices.push_back({{minX, minY, minZ}, color});
+            wireframeVertices.push_back({{maxX, maxY, minZ}, color});
+
+            AppendQuadIndices(indices, wireframeIndices, static_cast<uint32_t>(vertices.size()) - 4);
         }
 
         // Right (+X)
@@ -212,11 +216,13 @@ namespace Minecraft::Graphics
             vertices.push_back({{maxX, minY, minZ}, {1, 0, 0}, atlasCoord.uvMin});
             vertices.push_back({{maxX, minY, maxZ}, {1, 0, 0}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
             vertices.push_back({{maxX, maxY, minZ}, {1, 0, 0}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
-#ifdef MC_DEBUG
-            AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4, true);
-#else
-            AppendQuadIndices(indices, static_cast<uint32_t>(vertices.size()) - 4, true);
-#endif
+
+            wireframeVertices.push_back({{maxX, maxY, maxZ}, color});
+            wireframeVertices.push_back({{maxX, minY, minZ}, color});
+            wireframeVertices.push_back({{maxX, minY, maxZ}, color});
+            wireframeVertices.push_back({{maxX, maxY, minZ}, color});
+
+            AppendQuadIndices(indices, wireframeIndices, static_cast<uint32_t>(vertices.size()) - 4, true);
         }
 
         // Left (-X)
@@ -226,11 +232,13 @@ namespace Minecraft::Graphics
             vertices.push_back({{minX, minY, minZ}, {-1, 0, 0}, atlasCoord.uvMin});
             vertices.push_back({{minX, minY, maxZ}, {-1, 0, 0}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
             vertices.push_back({{minX, maxY, minZ}, {-1, 0, 0}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
-#ifdef MC_DEBUG
-            AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
-#else
-            AppendQuadIndices(indices, static_cast<uint32_t>(vertices.size()) - 4);
-#endif
+
+            wireframeVertices.push_back({{minX, maxY, maxZ}, color});
+            wireframeVertices.push_back({{minX, minY, minZ}, color});
+            wireframeVertices.push_back({{minX, minY, maxZ}, color});
+            wireframeVertices.push_back({{minX, maxY, minZ}, color});
+
+            AppendQuadIndices(indices, wireframeIndices, static_cast<uint32_t>(vertices.size()) - 4);
         }
 
         // Top (+Y)
@@ -240,11 +248,13 @@ namespace Minecraft::Graphics
             vertices.push_back({{minX, maxY, maxZ}, {0, 1, 0}, atlasCoord.uvMin});
             vertices.push_back({{maxX, maxY, maxZ}, {0, 1, 0}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
             vertices.push_back({{minX, maxY, minZ}, {0, 1, 0}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
-#ifdef MC_DEBUG
-            AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
-#else
-            AppendQuadIndices(indices, static_cast<uint32_t>(vertices.size()) - 4);
-#endif
+
+            wireframeVertices.push_back({{maxX, maxY, minZ}, color});
+            wireframeVertices.push_back({{minX, maxY, maxZ}, color});
+            wireframeVertices.push_back({{maxX, maxY, maxZ}, color});
+            wireframeVertices.push_back({{minX, maxY, minZ}, color});
+
+            AppendQuadIndices(indices, wireframeIndices, static_cast<uint32_t>(vertices.size()) - 4);
         }
 
         // Bottom (-Y)
@@ -254,18 +264,18 @@ namespace Minecraft::Graphics
             vertices.push_back({{minX, minY, minZ}, {0, -1, 0}, atlasCoord.uvMin});
             vertices.push_back({{maxX, minY, minZ}, {0, -1, 0}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
             vertices.push_back({{minX, minY, maxZ}, {0, -1, 0}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
-#ifdef MC_DEBUG
-            AppendQuadIndices(indices, wireFrameIndices, static_cast<uint32_t>(vertices.size()) - 4);
-#else
-            AppendQuadIndices(indices, static_cast<uint32_t>(vertices.size()) - 4);
-#endif
+
+            wireframeVertices.push_back({{maxX, minY, maxZ}, color});
+            wireframeVertices.push_back({{minX, minY, minZ}, color});
+            wireframeVertices.push_back({{maxX, minY, minZ}, color});
+            wireframeVertices.push_back({{minX, minY, maxZ}, color});
+
+            AppendQuadIndices(indices, wireframeIndices, static_cast<uint32_t>(vertices.size()) - 4);
         }
     }
 
     void ChunkRenderer::AppendQuadIndices(std::vector<uint32_t> &indices,
-#ifdef MC_DEBUG
-                                          std::vector<uint32_t> &wireFrameIndices,
-#endif
+                                          std::vector<uint32_t> &wireframeIndices,
                                           uint32_t faceBase,
                                           bool invertWindingOrder)
     {
@@ -278,6 +288,19 @@ namespace Minecraft::Graphics
             indices.push_back(faceBase + 0);
             indices.push_back(faceBase + 1);
             indices.push_back(faceBase + 3);
+
+            wireframeIndices.push_back(faceBase + 0);
+            wireframeIndices.push_back(faceBase + 2);
+            wireframeIndices.push_back(faceBase + 2);
+            wireframeIndices.push_back(faceBase + 1);
+            wireframeIndices.push_back(faceBase + 1);
+            wireframeIndices.push_back(faceBase + 0);
+            wireframeIndices.push_back(faceBase + 0);
+            wireframeIndices.push_back(faceBase + 1);
+            wireframeIndices.push_back(faceBase + 1);
+            wireframeIndices.push_back(faceBase + 3);
+            wireframeIndices.push_back(faceBase + 3);
+            wireframeIndices.push_back(faceBase + 0);
         }
         else
         {
@@ -288,19 +311,17 @@ namespace Minecraft::Graphics
             indices.push_back(faceBase + 0);
             indices.push_back(faceBase + 3);
             indices.push_back(faceBase + 1);
-        }
 
-#ifdef MC_DEBUG
-        wireFrameIndices.push_back(faceBase + 0);
-        wireFrameIndices.push_back(faceBase + 1);
-        wireFrameIndices.push_back(faceBase + 1);
-        wireFrameIndices.push_back(faceBase + 2);
-        wireFrameIndices.push_back(faceBase + 2);
-        wireFrameIndices.push_back(faceBase + 0);
-        wireFrameIndices.push_back(faceBase + 0);
-        wireFrameIndices.push_back(faceBase + 3);
-        wireFrameIndices.push_back(faceBase + 3);
-        wireFrameIndices.push_back(faceBase + 1);
-#endif
+            wireframeIndices.push_back(faceBase + 0);
+            wireframeIndices.push_back(faceBase + 1);
+            wireframeIndices.push_back(faceBase + 1);
+            wireframeIndices.push_back(faceBase + 2);
+            wireframeIndices.push_back(faceBase + 2);
+            wireframeIndices.push_back(faceBase + 0);
+            wireframeIndices.push_back(faceBase + 0);
+            wireframeIndices.push_back(faceBase + 3);
+            wireframeIndices.push_back(faceBase + 3);
+            wireframeIndices.push_back(faceBase + 1);
+        }
     }
 }

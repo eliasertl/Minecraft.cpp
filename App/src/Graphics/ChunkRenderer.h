@@ -4,6 +4,8 @@
 #include "Data/Chunk.h"
 #include "Graphics/GraphicsContext.h"
 #include "Graphics/BlockAtlas.h"
+#include "Graphics/ShaderSystems/TerrainRenderer.h"
+#include "Graphics/ShaderSystems/WireframeRenderer.h"
 
 #include <webgpu/webgpu_cpp.h>
 #include <vector>
@@ -18,18 +20,9 @@ namespace Minecraft::Graphics
         ~ChunkRenderer();
 
         void Render(wgpu::RenderPassEncoder encoder);
-#ifdef MC_DEBUG
         void RenderWireframe(wgpu::RenderPassEncoder encoder);
 
-#endif
-
     private:
-        struct Vertex
-        {
-            glm::vec3 position;
-            glm::vec3 normal;
-            glm::vec2 uv;
-        };
         struct ActiveFaces
         {
             bool front = false;
@@ -41,19 +34,16 @@ namespace Minecraft::Graphics
         };
 
         void BuildMesh();
-        void CreateCube(std::vector<Vertex> &vertices,
+        void CreateCube(std::vector<TerrainVertex> &vertices,
                         std::vector<uint32_t> &indices,
-#ifdef MC_DEBUG
+                        std::vector<WireframeVertex> &wireframeVertices,
                         std::vector<uint32_t> &wireFrameIndices,
-#endif
                         uint32_t x, uint32_t y, uint32_t z,
                         BlockAtlasCoord uvCoord,
                         ActiveFaces activeFaces = ActiveFaces());
 
         void AppendQuadIndices(std::vector<uint32_t> &indices,
-#ifdef MC_DEBUG
                                std::vector<uint32_t> &wireFrameIndices,
-#endif
                                uint32_t faceBase,
                                bool invertWindingOrder = false);
 
@@ -65,16 +55,16 @@ namespace Minecraft::Graphics
         Data::Chunk &m_Chunk;
         wgpu::Buffer m_VertexBuffer;
         wgpu::Buffer m_IndexBuffer;
-#ifdef MC_DEBUG
+        wgpu::Buffer m_WireframeVertexBuffer;
         wgpu::Buffer m_WireframeIndexBuffer;
-#endif
+
         uint32_t m_VertexCount = 0;
         uint32_t m_AllocatedVertexCount = 0;
         uint32_t m_IndexCount = 0;
         uint32_t m_AllocatedIndexCount = 0;
-#ifdef MC_DEBUG
+        uint32_t m_WireframeVertexCount = 0;
+        uint32_t m_AllocatedWireframeVertexCount = 0;
         uint32_t m_WireframeIndexCount = 0;
         uint32_t m_AllocatedWireframeIndexCount = 0;
-#endif
     };
 }

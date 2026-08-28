@@ -14,9 +14,7 @@ namespace Minecraft::Core
 {
     struct ApplicationSettings
     {
-#ifdef MC_DEBUG
         bool renderWireframe = false;
-#endif
     };
 
     static ApplicationSettings s_ApplicationSettings;
@@ -44,8 +42,7 @@ namespace Minecraft::Core
         m_ImGuiContext = CreateScope<Graphics::ImGuiContext>(*m_Window, m_GraphicsContext->GetDevice(), m_GraphicsContext->GetQueue(), m_GraphicsContext->GetSurfaceFormat(), m_GraphicsContext->GetDepthFormat());
         Input::Init(m_Window.get());
 
-        
-        m_BlockAtlas = CreateScope<Graphics::BlockAtlas>(*m_GraphicsContext); 
+        m_BlockAtlas = CreateScope<Graphics::BlockAtlas>(*m_GraphicsContext);
         Graphics::BlockAtlasID cobblestoneTextureId = m_BlockAtlas->RegisterBlockTexture("assets/textures/cobblestone.png");
         Graphics::BlockAtlasID dirtTextureId = m_BlockAtlas->RegisterBlockTexture("assets/textures/dirt.png");
         Graphics::BlockAtlasID planksTextureId = m_BlockAtlas->RegisterBlockTexture("assets/textures/planks.png");
@@ -58,11 +55,18 @@ namespace Minecraft::Core
         Data::BlockTypes::finishRegistration();
         m_BlockAtlas->Finalize();
 
+        wgpu::BufferDescriptor cameraUniformBufferDesc = {};
+        cameraUniformBufferDesc.size = sizeof(CameraUniforms);
+        cameraUniformBufferDesc.usage = wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst;
+        cameraUniformBufferDesc.mappedAtCreation = false;
+        m_CameraUniformBuffer = m_GraphicsContext->GetDevice().CreateBuffer(&cameraUniformBufferDesc);
 
         m_TestChunk = CreateScope<Data::Chunk>();
         SetTestChunkRandom();
         m_TestChunkRenderer = CreateScope<Graphics::ChunkRenderer>(*m_TestChunk, *m_GraphicsContext, *m_BlockAtlas);
-        m_ChunkRenderManager = CreateScope<Graphics::ChunkRenderManager>(*m_GraphicsContext, *m_BlockAtlas);
+
+        m_TerrainRenderer = CreateScope<Graphics::TerrainRenderer>(*m_GraphicsContext, m_CameraUniformBuffer, *m_BlockAtlas);
+        m_WireframeRenderer = CreateScope<Graphics::WireframeRenderer>(*m_GraphicsContext, m_CameraUniformBuffer);
     }
 
     void Application::SetTestChunkRandom()
@@ -122,7 +126,7 @@ namespace Minecraft::Core
             {
                 for (uint16_t z = 0; z < Data::CHUNK_LENGTH; z++)
                 {
-                    if(y == 0)
+                    if (y == 0)
                         m_TestChunk->setBlock(x, y, z, 1, 0);
                     else
                         m_TestChunk->setBlock(x, y, z, 2, 0);
@@ -165,19 +169,21 @@ namespace Minecraft::Core
         ImGui::Text("FOV: %.2f", glm::degrees(m_Camera->GetFOV()));
         ImGui::Text("Width: %.2f, Height: %.2f", m_Camera->GetViewSize().x, m_Camera->GetViewSize().y);
         ImGui::Text("Position: (%.2f, %.2f, %.2f)", m_Camera->GetTransform()[3][0], m_Camera->GetTransform()[3][1], m_Camera->GetTransform()[3][2]);
+
         ImGui::SeparatorText("Stats");
         ImGui::Text("FPS: %.2f", 1.0f / m_SmoothedDeltaTime);
         ImGui::Text("Frame Time: %.2f ms", m_SmoothedDeltaTime * 1000.0f);
         ImGui::Text("Window Size: %d x %d", m_Window->GetWidth(), m_Window->GetHeight());
+
         ImGui::SeparatorText("Block Atlas");
         ImGui::Text("Registered Block Types: %d", Data::BlockTypes::getRegisteredBlockTypes().size());
         ImGui::Text("Atlas Size: %dx%d", m_BlockAtlas->GetWidth(), m_BlockAtlas->GetHeight());
         glm::vec2 aspectAdjustedSize = glm::vec2(256.0f, 256.0f * (static_cast<float>(m_BlockAtlas->GetHeight()) / static_cast<float>(m_BlockAtlas->GetWidth())));
         ImGui::Image(reinterpret_cast<ImTextureID>(m_BlockAtlas->GetTextureView().Get()), {aspectAdjustedSize.x, aspectAdjustedSize.y});
+
         ImGui::SeparatorText("Controls");
-#ifdef MC_DEBUG
         ImGui::Checkbox("Render Wireframe", &s_ApplicationSettings.renderWireframe);
-#endif
+
         if (ImGui::Button("Random Chunk"))
         {
             SetTestChunkRandom();
@@ -235,29 +241,30 @@ namespace Minecraft::Core
             encoder = m_GraphicsContext->GetDevice().CreateCommandEncoder();
         }
         {
+            ZoneScopedN("Update Camera Uniform Buffer");
+            CameraUniforms cameraUniforms;
+            cameraUniforms.viewProjection = m_Camera->GetViewProjection();
+            m_GraphicsContext->GetQueue().WriteBuffer(m_CameraUniformBuffer, 0, &cameraUniforms, sizeof(CameraUniforms));
+        }
+        {
             TracyGPUZoneN(encoder, renderPassDesc, "Render Pass");
             wgpu::RenderPassEncoder renderPassEncoder = encoder.BeginRenderPass(&renderPassDesc);
             std::vector<Graphics::ChunkRenderer *> renderers = {m_TestChunkRenderer.get()};
-#ifdef MC_DEBUG
+
+            m_TerrainRenderer->Render(renderers, renderPassEncoder);
             if (s_ApplicationSettings.renderWireframe)
             {
-                m_ChunkRenderManager->RenderWireframe(renderers, *m_Camera, renderPassEncoder);
+                m_WireframeRenderer->Render(renderers, renderPassEncoder);
             }
-            else
-            {
-                m_ChunkRenderManager->Render(renderers, *m_Camera, renderPassEncoder);
-            }
-#else
-            m_ChunkRenderManager->Render(renderers, *m_Camera, renderPassEncoder);
-#endif
 
             m_ImGuiContext->Render(renderPassEncoder);
+
             renderPassEncoder.End();
         }
         {
             ZoneScopedN("Submit Commands");
             wgpu::CommandBuffer commands = encoder.Finish();
-            m_GraphicsContext->GetDevice().GetQueue().Submit(1, &commands);
+            m_GraphicsContext->GetQueue().Submit(1, &commands);
         }
         {
             ZoneScopedN("Present");
