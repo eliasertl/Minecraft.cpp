@@ -9,6 +9,8 @@ namespace Minecraft::Data
     typedef byte BlockID;
     typedef byte BlockMeta;
     constexpr uint16_t CHUNK_LENGTH = 16;
+    constexpr uint16_t CHUNK_WIDTH = 16;
+    constexpr uint16_t CHUNK_HEIGHT = 256;
 
     struct Block
     {

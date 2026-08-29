@@ -102,16 +102,16 @@ namespace Minecraft::Graphics
         std::vector<WireframeVertex> wireframeVertices;
         std::vector<uint32_t> wireframeIndices;
 
-        vertices.reserve(Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * 24);
-        indices.reserve(Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * 36);
-        wireframeVertices.reserve(Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * 24);
-        wireframeIndices.reserve(Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * Data::CHUNK_LENGTH * 60);
+        vertices.reserve(Data::CHUNK_LENGTH * Data::CHUNK_WIDTH * Data::CHUNK_HEIGHT * 24);
+        indices.reserve(Data::CHUNK_LENGTH * Data::CHUNK_WIDTH * Data::CHUNK_HEIGHT * 36);
+        wireframeVertices.reserve(Data::CHUNK_LENGTH * Data::CHUNK_WIDTH * Data::CHUNK_HEIGHT * 24);
+        wireframeIndices.reserve(Data::CHUNK_LENGTH * Data::CHUNK_WIDTH * Data::CHUNK_HEIGHT * 60);
 
         for (uint32_t x = 0; x < Data::CHUNK_LENGTH; ++x)
         {
-            for (uint32_t y = 0; y < Data::CHUNK_LENGTH; ++y)
+            for (uint32_t y = 0; y < Data::CHUNK_HEIGHT; ++y)
             {
-                for (uint32_t z = 0; z < Data::CHUNK_LENGTH; ++z)
+                for (uint32_t z = 0; z < Data::CHUNK_WIDTH; ++z)
                 {
                     Data::Block *block = m_Chunk.getBlock(x, y, z);
                     if (!block || block->id == 0)
@@ -124,11 +124,11 @@ namespace Minecraft::Graphics
                         activeFaces.right = true;
                     if (y == 0 || !m_Chunk.getBlock(x, y - 1, z) || m_Chunk.getBlock(x, y - 1, z)->id == 0)
                         activeFaces.bottom = true;
-                    if (y == Data::CHUNK_LENGTH - 1 || !m_Chunk.getBlock(x, y + 1, z) || m_Chunk.getBlock(x, y + 1, z)->id == 0)
+                    if (y == Data::CHUNK_HEIGHT - 1 || !m_Chunk.getBlock(x, y + 1, z) || m_Chunk.getBlock(x, y + 1, z)->id == 0)
                         activeFaces.top = true;
                     if (z == 0 || !m_Chunk.getBlock(x, y, z - 1) || m_Chunk.getBlock(x, y, z - 1)->id == 0)
                         activeFaces.back = true;
-                    if (z == Data::CHUNK_LENGTH - 1 || !m_Chunk.getBlock(x, y, z + 1) || m_Chunk.getBlock(x, y, z + 1)->id == 0)
+                    if (z == Data::CHUNK_WIDTH - 1 || !m_Chunk.getBlock(x, y, z + 1) || m_Chunk.getBlock(x, y, z + 1)->id == 0)
                         activeFaces.front = true;
 
                     // minus one because AIR=0

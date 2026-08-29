@@ -36,9 +36,10 @@ namespace Minecraft::Core
         m_Camera = CreateScope<Data::Camera>(*m_Window);
         m_Camera->SetViewSize(static_cast<float>(m_Window->GetWidth()), static_cast<float>(m_Window->GetHeight()));
         glm::mat4 cameraTransform = glm::mat4(1.0f);
-        cameraTransform = glm::translate(cameraTransform, glm::vec3(Data::CHUNK_LENGTH * 0.5f, Data::CHUNK_LENGTH * 1.5f, Data::CHUNK_LENGTH * 1.5f));
+        cameraTransform = glm::translate(cameraTransform, glm::vec3(Data::CHUNK_LENGTH * 0.5f, Data::CHUNK_HEIGHT + 10, Data::CHUNK_WIDTH * 1.5f));
         cameraTransform = glm::rotate(cameraTransform, glm::radians(-30.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         m_Camera->SetTransform(cameraTransform);
+        m_Camera->SetFOV(70.0f);
         m_ImGuiContext = CreateScope<Graphics::ImGuiContext>(*m_Window, m_GraphicsContext->GetDevice(), m_GraphicsContext->GetQueue(), m_GraphicsContext->GetSurfaceFormat(), m_GraphicsContext->GetDepthFormat());
         Input::Init(m_Window.get());
 
@@ -74,9 +75,9 @@ namespace Minecraft::Core
         auto gen = std::bind(std::uniform_int_distribution<>(0, 4), std::default_random_engine());
         for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
         {
-            for (uint16_t y = 0; y < Data::CHUNK_LENGTH; y++)
+            for (uint16_t y = 0; y < Data::CHUNK_HEIGHT; y++)
             {
-                for (uint16_t z = 0; z < Data::CHUNK_LENGTH; z++)
+                for (uint16_t z = 0; z < Data::CHUNK_WIDTH; z++)
                 {
                     m_TestChunk->setBlock(x, y, z, gen(), 0);
                 }
@@ -89,51 +90,48 @@ namespace Minecraft::Core
     {
         for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
         {
-            for (uint16_t y = 0; y < Data::CHUNK_LENGTH; y++)
+            for (uint16_t y = 0; y < Data::CHUNK_HEIGHT; y++)
             {
-                for (uint16_t z = 0; z < Data::CHUNK_LENGTH; z++)
+                for (uint16_t z = 0; z < Data::CHUNK_WIDTH; z++)
                 {
-                    if (y == 0)
+                    if (y == Data::CHUNK_HEIGHT - 1)
                         m_TestChunk->setBlock(x, y, z, 1, 0);
                     else
                         m_TestChunk->setBlock(x, y, z, 0, 0);
                 }
             }
         }
-        m_TestChunk->markDirty();
     }
 
     void Application::SetTestChunkEmpty()
     {
         for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
         {
-            for (uint16_t y = 0; y < Data::CHUNK_LENGTH; y++)
+            for (uint16_t y = 0; y < Data::CHUNK_HEIGHT; y++)
             {
-                for (uint16_t z = 0; z < Data::CHUNK_LENGTH; z++)
+                for (uint16_t z = 0; z < Data::CHUNK_WIDTH; z++)
                 {
                     m_TestChunk->setBlock(x, y, z, 0, 0);
                 }
             }
         }
-        m_TestChunk->markDirty();
     }
 
     void Application::SetTestChunkFull()
     {
         for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
         {
-            for (uint16_t y = 0; y < Data::CHUNK_LENGTH; y++)
+            for (uint16_t y = 0; y < Data::CHUNK_HEIGHT; y++)
             {
-                for (uint16_t z = 0; z < Data::CHUNK_LENGTH; z++)
+                for (uint16_t z = 0; z < Data::CHUNK_WIDTH; z++)
                 {
-                    if (y == 0)
+                    if (y == Data::CHUNK_HEIGHT - 1)
                         m_TestChunk->setBlock(x, y, z, 1, 0);
                     else
                         m_TestChunk->setBlock(x, y, z, 2, 0);
                 }
             }
         }
-        m_TestChunk->markDirty();
     }
 
     Application::~Application()
@@ -153,7 +151,7 @@ namespace Minecraft::Core
 
         float deltaTime = m_Window->GetDeltaTime();
 
-        constexpr float smoothing = 0.1f;
+        constexpr float smoothing = 0.01f;
         m_SmoothedDeltaTime += (deltaTime - m_SmoothedDeltaTime) * smoothing;
 
         Input::Update();
