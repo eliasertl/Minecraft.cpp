@@ -104,7 +104,7 @@ namespace Minecraft::Graphics
         wgpu::DepthStencilState depthStencilState = {};
         depthStencilState.format = m_GraphicsContext.GetDepthFormat();
         depthStencilState.depthWriteEnabled = true;
-        depthStencilState.depthCompare = wgpu::CompareFunction::Less;
+        depthStencilState.depthCompare = wgpu::CompareFunction::LessEqual;
         pipelineDesc.depthStencil = &depthStencilState;
 
         // Pipeline layout
