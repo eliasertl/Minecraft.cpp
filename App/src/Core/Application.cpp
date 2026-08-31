@@ -17,6 +17,10 @@ namespace Minecraft::Core
         bool renderWireframe = false;
     };
 
+    const int TestChunkGenerationSize = 5;
+    const int TestChunkGenerationStartPoint = -2;
+    const int TestChunkGenerationEndPoint = TestChunkGenerationStartPoint + TestChunkGenerationSize - 1;
+
     static ApplicationSettings s_ApplicationSettings;
     Application *Application::s_Instance = nullptr;
 
@@ -62,73 +66,113 @@ namespace Minecraft::Core
         cameraUniformBufferDesc.mappedAtCreation = false;
         m_CameraUniformBuffer = m_GraphicsContext->GetDevice().CreateBuffer(&cameraUniformBufferDesc);
 
-        m_TestChunk = CreateScope<Data::Chunk>();
-        SetTestChunkRandom();
-        m_TestChunkRenderer = CreateScope<Graphics::ChunkRenderer>(*m_TestChunk, *m_GraphicsContext, *m_BlockAtlas);
+        m_World = CreateScope<Data::World>();
+        for (int i = TestChunkGenerationStartPoint; i < TestChunkGenerationEndPoint; i++)
+        {
+            for (int j = TestChunkGenerationStartPoint; j < TestChunkGenerationEndPoint; j++)
+            {
+                m_World->addEmptyChunk({i, j});
+            }
+        }
+        SetTestChunksRandom();
 
+        m_WorldRenderer = CreateScope<Graphics::WorldRenderer>(*m_World, *m_GraphicsContext, *m_BlockAtlas);
+        
         m_TerrainRenderer = CreateScope<Graphics::TerrainRenderer>(*m_GraphicsContext, m_CameraUniformBuffer, *m_BlockAtlas);
         m_WireframeRenderer = CreateScope<Graphics::WireframeRenderer>(*m_GraphicsContext, m_CameraUniformBuffer);
     }
 
-    void Application::SetTestChunkRandom()
+    void Application::SetTestChunksRandom()
     {
+        // TODO: Clean Up
         auto gen = std::bind(std::uniform_int_distribution<>(0, 4), std::default_random_engine());
-        for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
+        for (int i = TestChunkGenerationStartPoint; i < TestChunkGenerationEndPoint; i++)
         {
-            for (uint16_t y = 0; y < Data::CHUNK_HEIGHT; y++)
+            for (int j = TestChunkGenerationStartPoint; j < TestChunkGenerationEndPoint; j++)
             {
-                for (uint16_t z = 0; z < Data::CHUNK_WIDTH; z++)
-                {
-                    m_TestChunk->setBlock(x, y, z, gen(), 0);
-                }
-            }
-        }
-        m_TestChunk->markDirty();
-    }
+                Data::Chunk *chunk = m_World->getChunk({i, j});
 
-    void Application::SetTestChunkFlat()
-    {
-        for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
-        {
-            for (uint16_t y = 0; y < Data::CHUNK_HEIGHT; y++)
-            {
-                for (uint16_t z = 0; z < Data::CHUNK_WIDTH; z++)
+                for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
                 {
-                    if (y == Data::CHUNK_HEIGHT - 1)
-                        m_TestChunk->setBlock(x, y, z, 1, 0);
-                    else
-                        m_TestChunk->setBlock(x, y, z, 0, 0);
+                    for (uint16_t y = 0; y < Data::CHUNK_HEIGHT; y++)
+                    {
+                        for (uint16_t z = 0; z < Data::CHUNK_WIDTH; z++)
+                        {
+                            chunk->setBlock(x, y, z, gen(), 0);
+                        }
+                    }
                 }
             }
         }
     }
 
-    void Application::SetTestChunkEmpty()
+    void Application::SetTestChunksFlat()
     {
-        for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
+        for (int i = TestChunkGenerationStartPoint; i < TestChunkGenerationEndPoint; i++)
         {
-            for (uint16_t y = 0; y < Data::CHUNK_HEIGHT; y++)
+            for (int j = TestChunkGenerationStartPoint; j < TestChunkGenerationEndPoint; j++)
             {
-                for (uint16_t z = 0; z < Data::CHUNK_WIDTH; z++)
+                Data::Chunk *chunk = m_World->getChunk({i, j});
+
+                for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
                 {
-                    m_TestChunk->setBlock(x, y, z, 0, 0);
+                    for (uint16_t y = 0; y < Data::CHUNK_HEIGHT; y++)
+                    {
+                        for (uint16_t z = 0; z < Data::CHUNK_WIDTH; z++)
+                        {
+                            if (y == Data::CHUNK_HEIGHT - 1)
+                                chunk->setBlock(x, y, z, 1, 0);
+                            else
+                                chunk->setBlock(x, y, z, 0, 0);
+                        }
+                    }
                 }
             }
         }
     }
 
-    void Application::SetTestChunkFull()
+    void Application::SetTestChunksEmpty()
     {
-        for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
+        for (int i = TestChunkGenerationStartPoint; i < TestChunkGenerationEndPoint; i++)
         {
-            for (uint16_t y = 0; y < Data::CHUNK_HEIGHT; y++)
+            for (int j = TestChunkGenerationStartPoint; j < TestChunkGenerationEndPoint; j++)
             {
-                for (uint16_t z = 0; z < Data::CHUNK_WIDTH; z++)
+                Data::Chunk *chunk = m_World->getChunk({i, j});
+
+                for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
                 {
-                    if (y == Data::CHUNK_HEIGHT - 1)
-                        m_TestChunk->setBlock(x, y, z, 1, 0);
-                    else
-                        m_TestChunk->setBlock(x, y, z, 2, 0);
+                    for (uint16_t y = 0; y < Data::CHUNK_HEIGHT; y++)
+                    {
+                        for (uint16_t z = 0; z < Data::CHUNK_WIDTH; z++)
+                        {
+                            chunk->setBlock(x, y, z, 0, 0);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    void Application::SetTestChunksFull()
+    {
+        for (int i = TestChunkGenerationStartPoint; i < TestChunkGenerationEndPoint; i++)
+        {
+            for (int j = TestChunkGenerationStartPoint; j < TestChunkGenerationEndPoint; j++)
+            {
+                Data::Chunk *chunk = m_World->getChunk({i, j});
+
+                for (uint16_t x = 0; x < Data::CHUNK_LENGTH; x++)
+                {
+                    for (uint16_t y = 0; y < Data::CHUNK_HEIGHT; y++)
+                    {
+                        for (uint16_t z = 0; z < Data::CHUNK_WIDTH; z++)
+                        {
+                            if (y == Data::CHUNK_HEIGHT - 1)
+                                chunk->setBlock(x, y, z, 2, 0);
+                            else
+                                chunk->setBlock(x, y, z, 1, 0);
+                        }
+                    }
                 }
             }
         }
@@ -137,9 +181,8 @@ namespace Minecraft::Core
     Application::~Application()
     {
         LOG_INFO("Shutting down Application");
-        m_TestChunkRenderer.release();
-        m_TestChunk.release();
         m_BlockAtlas.release();
+        m_World.release();
         m_ImGuiContext.release();
         m_GraphicsContext.release();
         m_Window.release();
@@ -184,19 +227,19 @@ namespace Minecraft::Core
 
         if (ImGui::Button("Random Chunk"))
         {
-            SetTestChunkRandom();
+            SetTestChunksRandom();
         }
         if (ImGui::Button("Flat Chunk"))
         {
-            SetTestChunkFlat();
+            SetTestChunksFlat();
         }
         if (ImGui::Button("Empty Chunk"))
         {
-            SetTestChunkEmpty();
+            SetTestChunksEmpty();
         }
         if (ImGui::Button("Full Chunk"))
         {
-            SetTestChunkFull();
+            SetTestChunksFull();
         }
         ImGui::End();
     }
@@ -224,6 +267,7 @@ namespace Minecraft::Core
             renderPassDesc.colorAttachments = &renderPassColorAttachment;
             renderPassDesc.depthStencilAttachment = nullptr;
             renderPassDesc.timestampWrites = nullptr;
+            renderPassDesc.label = "Terrain Render Pass";
 
             depthStencilAttachment.view = m_GraphicsContext->GetDepthTextureView();
             depthStencilAttachment.depthLoadOp = wgpu::LoadOp::Clear;
@@ -247,12 +291,11 @@ namespace Minecraft::Core
         {
             TracyGPUZoneN(encoder, renderPassDesc, "Render Pass");
             wgpu::RenderPassEncoder renderPassEncoder = encoder.BeginRenderPass(&renderPassDesc);
-            std::vector<Graphics::ChunkRenderer *> renderers = {m_TestChunkRenderer.get()};
 
-            m_TerrainRenderer->Render(renderers, renderPassEncoder);
+            m_TerrainRenderer->Render(m_WorldRenderer.get(), renderPassEncoder);
             if (s_ApplicationSettings.renderWireframe)
             {
-                m_WireframeRenderer->Render(renderers, renderPassEncoder);
+                m_WireframeRenderer->Render(m_WorldRenderer.get(), renderPassEncoder);
             }
 
             m_ImGuiContext->Render(renderPassEncoder);

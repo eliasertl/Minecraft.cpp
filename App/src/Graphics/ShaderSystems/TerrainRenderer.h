@@ -16,7 +16,7 @@ namespace Minecraft::Graphics
         glm::vec2 uv;
     };
 
-    struct ChunkRenderer;
+    struct WorldRenderer;
 
     class TerrainRenderer
     {
@@ -24,7 +24,7 @@ namespace Minecraft::Graphics
         TerrainRenderer(GraphicsContext& graphicsContext, wgpu::Buffer cameraUniformBuffer, const BlockAtlas& blockAtlas);
         ~TerrainRenderer();
 
-        void Render(std::vector<ChunkRenderer *> &renderers, wgpu::RenderPassEncoder encoder);
+        void Render(WorldRenderer* renderer, wgpu::RenderPassEncoder encoder);
 
     private:
         void InitPipeline();
@@ -34,8 +34,9 @@ namespace Minecraft::Graphics
         const BlockAtlas& m_BlockAtlas;
         wgpu::RenderPipeline m_RenderPipeline;
         wgpu::Buffer m_CameraUniformBuffer;
-        wgpu::BindGroup m_CameraBindGroup;
-        wgpu::BindGroupLayout m_CameraBindGroupLayout;
+        wgpu::BindGroup m_BindGroup;
+        wgpu::BindGroupLayout m_BindGroupLayout;
+        wgpu::BindGroupLayout m_ChunkBindGroupLayout;
         wgpu::PipelineLayout m_PipelineLayout;
 
         glm::mat4 m_Transform;

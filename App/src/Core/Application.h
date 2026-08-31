@@ -4,12 +4,12 @@
 #include "Graphics/Window.h"
 #include "Graphics/GraphicsContext.h"
 #include "Graphics/ImGuiContext.h"
-#include "Graphics/ChunkRenderer.h"
+#include "Graphics/WorldRenderer.h"
 #include "Graphics/ShaderSystems/TerrainRenderer.h"
 #include "Graphics/ShaderSystems/WireframeRenderer.h"
 #include "Graphics/BlockAtlas.h"
 #include "Data/BlockTypes.h"
-#include "Data/Chunk.h"
+#include "Data/World.h"
 #include "Data/Camera.h"
 
 #include <glm/glm.hpp>
@@ -38,10 +38,10 @@ namespace Minecraft::Core
         void OnUpdate(float deltaTime);
         void OnFrameEnd();
 
-        void SetTestChunkRandom();
-        void SetTestChunkFlat();
-        void SetTestChunkEmpty();
-        void SetTestChunkFull();
+        void SetTestChunksRandom();
+        void SetTestChunksFlat();
+        void SetTestChunksEmpty();
+        void SetTestChunksFull();
 
     private:
         static Application *s_Instance;
@@ -50,9 +50,9 @@ namespace Minecraft::Core
         Scope<Graphics::Window> m_Window;
         Scope<Graphics::GraphicsContext> m_GraphicsContext;
         Scope<Graphics::ImGuiContext> m_ImGuiContext;
-        Scope<Data::Chunk> m_TestChunk;
+        Scope<Data::World> m_World;
         Scope<Data::Camera> m_Camera;
-        Scope<Graphics::ChunkRenderer> m_TestChunkRenderer;
+        Scope<Graphics::WorldRenderer> m_WorldRenderer;
         Scope<Graphics::TerrainRenderer> m_TerrainRenderer;
         Scope<Graphics::WireframeRenderer> m_WireframeRenderer;
         Scope<Graphics::BlockAtlas> m_BlockAtlas;

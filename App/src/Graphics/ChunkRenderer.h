@@ -19,8 +19,17 @@ namespace Minecraft::Graphics
         ChunkRenderer(Data::Chunk &chunk, GraphicsContext &graphicsContext, const BlockAtlas &blockAtlas);
         ~ChunkRenderer();
 
+        ChunkRenderer(const ChunkRenderer &) = delete;
+        ChunkRenderer &operator=(const ChunkRenderer &) = delete;
+        ChunkRenderer(ChunkRenderer &&) = delete;
+        ChunkRenderer &operator=(ChunkRenderer &&) = delete;
+
         void Render(wgpu::RenderPassEncoder encoder);
         void RenderWireframe(wgpu::RenderPassEncoder encoder);
+
+        struct ChunkUniforms {
+            glm::mat4 transform;
+        };
 
     private:
         struct ActiveFaces
@@ -48,6 +57,7 @@ namespace Minecraft::Graphics
                                bool invertWindingOrder = false);
 
         void InitBuffers();
+        void InitBindGroup();
 
     private:
         GraphicsContext &m_GraphicsContext;
@@ -57,6 +67,9 @@ namespace Minecraft::Graphics
         wgpu::Buffer m_IndexBuffer;
         wgpu::Buffer m_WireframeVertexBuffer;
         wgpu::Buffer m_WireframeIndexBuffer;
+        wgpu::Buffer m_UniformBuffer;
+        wgpu::BindGroup m_ChunkBindGroup;
+        wgpu::BindGroupLayout m_ChunkBindGroupLayout;
 
         uint32_t m_VertexCount = 0;
         uint32_t m_AllocatedVertexCount = 0;

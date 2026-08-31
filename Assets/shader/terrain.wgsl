@@ -2,6 +2,10 @@ struct CameraUniforms {
     viewProjection: mat4x4f,
 };
 
+struct ChunkUniforms {
+    transform: mat4x4f,
+}
+
 @group(0) @binding(0)
 var<uniform> uCam: CameraUniforms;
 
@@ -10,6 +14,9 @@ var atlasTexture: texture_2d<f32>;
 
 @group(0) @binding(2)
 var atlasSampler: sampler;
+
+@group(1) @binding(0)
+var <uniform> uChunk: ChunkUniforms;
 
 struct VertexInput {
     @location(0) position: vec3f,
@@ -26,7 +33,7 @@ struct VertexOutput {
 @vertex
 fn vs_main(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
-    out.clip_position = uCam.viewProjection * vec4f(in.position, 1.0);
+    out.clip_position = uCam.viewProjection * uChunk.transform * vec4f(in.position, 1.0);
     out.uv = in.uv;
     out.normal = in.normal;
     return out;

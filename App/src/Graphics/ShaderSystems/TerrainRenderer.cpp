@@ -2,6 +2,7 @@
 #include "Common/File.h"
 #include "Core/Application.h"
 #include "Core/Logger.h"
+#include "Graphics/WorldRenderer.h"
 
 #include <tracy/Tracy.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -17,7 +18,7 @@ namespace Minecraft::Graphics
     TerrainRenderer::~TerrainRenderer()
     {
         m_RenderPipeline = nullptr;
-        m_CameraBindGroup = nullptr;
+        m_BindGroup = nullptr;
     }
 
     void TerrainRenderer::InitPipeline()
@@ -131,12 +132,25 @@ namespace Minecraft::Graphics
         bindGroupLayoutDesc.entryCount = bindingLayouts.size();
         bindGroupLayoutDesc.entries = bindingLayouts.data();
         bindGroupLayoutDesc.nextInChain = nullptr;
-        m_CameraBindGroupLayout = m_GraphicsContext.GetDevice().CreateBindGroupLayout(&bindGroupLayoutDesc);
+        m_BindGroupLayout = m_GraphicsContext.GetDevice().CreateBindGroupLayout(&bindGroupLayoutDesc);
+
+        std::vector<wgpu::BindGroupLayoutEntry> chunkBindingLayouts(1);
+        chunkBindingLayouts[0].binding = 0;
+        chunkBindingLayouts[0].visibility = wgpu::ShaderStage::Vertex;
+        chunkBindingLayouts[0].buffer.type = wgpu::BufferBindingType::Uniform;
+        chunkBindingLayouts[0].buffer.minBindingSize = sizeof(Graphics::ChunkRenderer::ChunkUniforms);
+
+        wgpu::BindGroupLayoutDescriptor chunkBindGroupLayoutDesc = wgpu::BindGroupLayoutDescriptor{};
+        chunkBindGroupLayoutDesc.entryCount = chunkBindingLayouts.size();
+        chunkBindGroupLayoutDesc.entries = chunkBindingLayouts.data();
+        chunkBindGroupLayoutDesc.nextInChain = nullptr;
+        m_ChunkBindGroupLayout = m_GraphicsContext.GetDevice().CreateBindGroupLayout(&chunkBindGroupLayoutDesc);
 
         wgpu::PipelineLayoutDescriptor pipelineLayoutDesc = {};
         pipelineLayoutDesc.nextInChain = nullptr;
-        pipelineLayoutDesc.bindGroupLayoutCount = 1;
-        pipelineLayoutDesc.bindGroupLayouts = &m_CameraBindGroupLayout;
+        wgpu::BindGroupLayout pipelineLayouts[] = {m_BindGroupLayout, m_ChunkBindGroupLayout};
+        pipelineLayoutDesc.bindGroupLayoutCount = 2;
+        pipelineLayoutDesc.bindGroupLayouts = pipelineLayouts;
         m_PipelineLayout = m_GraphicsContext.GetDevice().CreatePipelineLayout(&pipelineLayoutDesc);
         pipelineDesc.layout = m_PipelineLayout;
 
@@ -153,11 +167,14 @@ namespace Minecraft::Graphics
         bindGroupEntries[2].sampler = m_BlockAtlas.GetSampler();
 
         wgpu::BindGroupDescriptor bindGroupDesc = {};
-        bindGroupDesc.layout = m_CameraBindGroupLayout;
+        bindGroupDesc.layout = m_BindGroupLayout;
         bindGroupDesc.entryCount = bindGroupEntries.size();
         bindGroupDesc.entries = bindGroupEntries.data();
 
-        m_CameraBindGroup = m_GraphicsContext.GetDevice().CreateBindGroup(&bindGroupDesc);
+        wgpu::BindGroupDescriptor chunkBindGroupDesc = {};
+        
+
+        m_BindGroup = m_GraphicsContext.GetDevice().CreateBindGroup(&bindGroupDesc);
         m_RenderPipeline = m_GraphicsContext.GetDevice().CreateRenderPipeline(&pipelineDesc);
         shaderModule = nullptr;
 
@@ -167,16 +184,13 @@ namespace Minecraft::Graphics
         }
     }
 
-    void TerrainRenderer::Render(std::vector<ChunkRenderer *> &renderers, wgpu::RenderPassEncoder encoder)
+    void TerrainRenderer::Render(WorldRenderer *worldRenderer, wgpu::RenderPassEncoder encoder)
     {
         ZoneScoped;
         encoder.PushDebugGroup("TerrainRenderer::Render");
         encoder.SetPipeline(m_RenderPipeline);
-        encoder.SetBindGroup(0, m_CameraBindGroup);
-        for (auto renderer : renderers)
-        {
-            renderer->Render(encoder);
-        }
+        encoder.SetBindGroup(0, m_BindGroup);
+        worldRenderer->Render(encoder);
         encoder.PopDebugGroup();
     }
 }

@@ -3,6 +3,7 @@
 #include "Core/Logger.h"
 
 #include <tracy/Tracy.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace Minecraft::Graphics
 {
@@ -11,6 +12,33 @@ namespace Minecraft::Graphics
     {
         InitBuffers();
         BuildMesh();
+    }
+
+    void ChunkRenderer::InitBindGroup()
+    {
+        std::vector<wgpu::BindGroupLayoutEntry> chunkBindingLayouts(1);
+        chunkBindingLayouts[0].binding = 0;
+        chunkBindingLayouts[0].visibility = wgpu::ShaderStage::Vertex;
+        chunkBindingLayouts[0].buffer.type = wgpu::BufferBindingType::Uniform;
+        chunkBindingLayouts[0].buffer.minBindingSize = sizeof(ChunkUniforms);
+
+        wgpu::BindGroupLayoutDescriptor chunkBindGroupLayoutDesc = {};
+        chunkBindGroupLayoutDesc.entryCount = chunkBindingLayouts.size();
+        chunkBindGroupLayoutDesc.entries = chunkBindingLayouts.data();
+        chunkBindGroupLayoutDesc.nextInChain = nullptr;
+        m_ChunkBindGroupLayout = m_GraphicsContext.GetDevice().CreateBindGroupLayout(&chunkBindGroupLayoutDesc);
+
+        std::vector<wgpu::BindGroupEntry> bindGroupEntries(1);
+        bindGroupEntries[0].binding = 0;
+        bindGroupEntries[0].buffer = m_UniformBuffer;
+        bindGroupEntries[0].offset = 0;
+        bindGroupEntries[0].size = sizeof(ChunkUniforms);
+
+        wgpu::BindGroupDescriptor bindGroupDesc = {};
+        bindGroupDesc.layout = m_ChunkBindGroupLayout;
+        bindGroupDesc.entryCount = bindGroupEntries.size();
+        bindGroupDesc.entries = bindGroupEntries.data();
+        m_ChunkBindGroup = m_GraphicsContext.GetDevice().CreateBindGroup(&bindGroupDesc);
     }
 
     void ChunkRenderer::InitBuffers()
@@ -54,14 +82,26 @@ namespace Minecraft::Graphics
         wireframeIndexBufferDesc.mappedAtCreation = false;
         m_WireframeIndexBuffer = m_GraphicsContext.GetDevice().CreateBuffer(&wireframeIndexBufferDesc);
         m_AllocatedWireframeIndexCount = wireframeIndexBufferSize / sizeof(uint32_t);
+
+        // Uniform Buffer
+        wgpu::BufferDescriptor bufferDesc = {};
+        bufferDesc.size = sizeof(ChunkUniforms);
+        bufferDesc.usage = wgpu::BufferUsage::Uniform | wgpu::BufferUsage::CopyDst;
+        bufferDesc.mappedAtCreation = false;
+        m_UniformBuffer = m_GraphicsContext.GetDevice().CreateBuffer(&bufferDesc);
+
+        InitBindGroup();
     }
 
     ChunkRenderer::~ChunkRenderer()
     {
-        m_VertexBuffer = nullptr;
-        m_IndexBuffer = nullptr;
-
-        m_WireframeIndexBuffer = nullptr;
+        m_ChunkBindGroup = nullptr;
+        m_ChunkBindGroupLayout = nullptr;
+        m_VertexBuffer.Destroy();
+        m_IndexBuffer.Destroy();
+        m_WireframeVertexBuffer.Destroy();
+        m_WireframeIndexBuffer.Destroy();
+        m_UniformBuffer.Destroy();
     }
 
     void ChunkRenderer::Render(wgpu::RenderPassEncoder encoder)
@@ -73,6 +113,7 @@ namespace Minecraft::Graphics
             BuildMesh();
             m_Chunk.markClean();
         }
+        encoder.SetBindGroup(1, m_ChunkBindGroup);
         encoder.SetVertexBuffer(0, m_VertexBuffer);
         encoder.SetIndexBuffer(m_IndexBuffer, wgpu::IndexFormat::Uint32);
         encoder.DrawIndexed(m_IndexCount, 1, 0, 0, 0);
@@ -88,6 +129,7 @@ namespace Minecraft::Graphics
             BuildMesh();
             m_Chunk.markClean();
         }
+        encoder.SetBindGroup(1, m_ChunkBindGroup);
         encoder.SetVertexBuffer(0, m_WireframeVertexBuffer);
         encoder.SetIndexBuffer(m_WireframeIndexBuffer, wgpu::IndexFormat::Uint32);
         encoder.DrawIndexed(m_WireframeIndexCount, 1, 0, 0, 0);
@@ -98,7 +140,7 @@ namespace Minecraft::Graphics
     {
         ZoneScoped;
         std::vector<TerrainVertex> vertices;
-        std::vector<uint32_t> indices;       
+        std::vector<uint32_t> indices;
         std::vector<WireframeVertex> wireframeVertices;
         std::vector<uint32_t> wireframeIndices;
 
@@ -145,18 +187,23 @@ namespace Minecraft::Graphics
         m_WireframeVertexCount = static_cast<uint32_t>(wireframeVertices.size());
         m_WireframeIndexCount = static_cast<uint32_t>(wireframeIndices.size());
 
-        if (m_VertexCount > m_AllocatedVertexCount || m_IndexCount > m_AllocatedIndexCount
-            || m_WireframeIndexCount > m_AllocatedWireframeIndexCount || m_WireframeVertexCount > m_AllocatedWireframeVertexCount
-        )
+        if (m_VertexCount > m_AllocatedVertexCount || m_IndexCount > m_AllocatedIndexCount || m_WireframeIndexCount > m_AllocatedWireframeIndexCount || m_WireframeVertexCount > m_AllocatedWireframeVertexCount)
         {
-            LOG_INFO("Reallocating buffers: VertexCount = {}, AllocatedVertexCount = {}, IndexCount = {}, AllocatedIndexCount = {}", m_VertexCount, m_AllocatedVertexCount, m_IndexCount, m_AllocatedIndexCount);
             InitBuffers();
         }
 
+        ChunkUniforms chunkUniforms{};
+        const glm::ivec2 chunkPosition = m_Chunk.getChunkPosition();
+        chunkUniforms.transform = glm::translate(glm::mat4(1.0f), glm::vec3(
+            static_cast<float>(chunkPosition.x) * Data::CHUNK_LENGTH,
+            0.0f,
+            static_cast<float>(chunkPosition.y) * Data::CHUNK_WIDTH));
+
         m_GraphicsContext.GetQueue().WriteBuffer(m_VertexBuffer, 0, vertices.data(), m_VertexCount * sizeof(TerrainVertex));
         m_GraphicsContext.GetQueue().WriteBuffer(m_IndexBuffer, 0, indices.data(), m_IndexCount * sizeof(uint32_t));
-        m_GraphicsContext.GetQueue().WriteBuffer(m_WireframeVertexBuffer, 0, wireframeVertices.data(), m_WireframeVertexCount * sizeof(WireframeVertex));   
+        m_GraphicsContext.GetQueue().WriteBuffer(m_WireframeVertexBuffer, 0, wireframeVertices.data(), m_WireframeVertexCount * sizeof(WireframeVertex));
         m_GraphicsContext.GetQueue().WriteBuffer(m_WireframeIndexBuffer, 0, wireframeIndices.data(), m_WireframeIndexCount * sizeof(uint32_t));
+        m_GraphicsContext.GetQueue().WriteBuffer(m_UniformBuffer, 0, &chunkUniforms, sizeof(ChunkUniforms));
     }
 
     void ChunkRenderer::CreateCube(std::vector<TerrainVertex> &vertices,
@@ -200,7 +247,7 @@ namespace Minecraft::Graphics
             vertices.push_back({{maxX, minY, minZ}, {0, 0, -1}, atlasCoord.uvMin});
             vertices.push_back({{minX, minY, minZ}, {0, 0, -1}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
             vertices.push_back({{maxX, maxY, minZ}, {0, 0, -1}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
-            
+
             wireframeVertices.push_back({{minX, maxY, minZ}, color});
             wireframeVertices.push_back({{maxX, minY, minZ}, color});
             wireframeVertices.push_back({{minX, minY, minZ}, color});

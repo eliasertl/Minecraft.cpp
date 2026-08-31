@@ -10,6 +10,31 @@ namespace Minecraft::Data
         memset(m_Blocks, 0, sizeof(Block) * CHUNK_LENGTH * CHUNK_WIDTH * CHUNK_HEIGHT);
     }
 
+    Chunk::Chunk(const Chunk &other)
+    {
+        m_Position = other.m_Position;
+        m_IsDirty = other.m_IsDirty;
+
+        m_Blocks = static_cast<Block*>(malloc(sizeof(Block) * CHUNK_LENGTH * CHUNK_WIDTH * CHUNK_HEIGHT));
+        memcpy(m_Blocks, other.m_Blocks, sizeof(Block) * CHUNK_LENGTH * CHUNK_WIDTH * CHUNK_HEIGHT);
+    }
+
+    Chunk& Chunk::operator=(const Chunk &other)
+    {
+        if (this != &other)
+        {
+            m_Position = other.m_Position;
+            m_IsDirty = other.m_IsDirty;
+
+            if (m_Blocks)
+                free(m_Blocks);
+
+            m_Blocks = static_cast<Block*>(malloc(sizeof(Block) * CHUNK_LENGTH * CHUNK_WIDTH * CHUNK_HEIGHT));
+            memcpy(m_Blocks, other.m_Blocks, sizeof(Block) * CHUNK_LENGTH * CHUNK_WIDTH * CHUNK_HEIGHT);
+        }
+        return *this;
+    }
+
     Chunk::~Chunk()
     {
         free(m_Blocks);
