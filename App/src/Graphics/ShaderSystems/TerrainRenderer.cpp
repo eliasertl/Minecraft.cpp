@@ -184,13 +184,13 @@ namespace Minecraft::Graphics
         }
     }
 
-    void TerrainRenderer::Render(WorldRenderer *worldRenderer, wgpu::RenderPassEncoder encoder)
+    void TerrainRenderer::Render(WorldRenderer *worldRenderer, wgpu::RenderPassEncoder encoder, const glm::vec3 &cameraPosition)
     {
         ZoneScoped;
         encoder.PushDebugGroup("TerrainRenderer::Render");
         encoder.SetPipeline(m_RenderPipeline);
         encoder.SetBindGroup(0, m_BindGroup);
-        worldRenderer->Render(encoder);
+        worldRenderer->Render(encoder, cameraPosition);
         encoder.PopDebugGroup();
     }
 }

@@ -22,7 +22,7 @@ namespace Minecraft::Graphics
         WireframeRenderer(GraphicsContext& graphicsContext, wgpu::Buffer cameraUniformBuffer);
         ~WireframeRenderer();
 
-        void Render(WorldRenderer* renderer, wgpu::RenderPassEncoder encoder);
+        void Render(WorldRenderer* renderer, wgpu::RenderPassEncoder encoder, const glm::vec3 &cameraPosition);
 
     private:
         void InitPipeline();

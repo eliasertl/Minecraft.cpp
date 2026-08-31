@@ -42,6 +42,9 @@ namespace Minecraft::Data
         if (Input::IsKeyPressed(KeyCode::LeftCtrl))
             movement.y -= m_MovementSpeed * 0.7f;
 
+        if(Input::IsKeyPressed(KeyCode::LeftShift))
+            movement *= 4.0f;
+
         glm::vec2 mouseDelta = glm::vec2(0.0f);
         if(!Input::IsKeyPressed(KeyCode::LeftAlt) && !Input::IsKeyPressed(KeyCode::RightAlt))
         {

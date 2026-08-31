@@ -18,7 +18,9 @@ namespace Minecraft::Data
         inline const glm::mat4 &GetTransform() const { return m_Transform; }
 
         inline void SetTransform(glm::mat4 transform) { m_Transform = transform; UpdateViewProjection(); }
-        #
+        inline glm::vec3 GetPosition() const { return glm::vec3(m_Transform[3]); }
+
+
         inline void SetFOV(float fov) { m_FOV = fov; UpdateViewProjection(); }
         inline void SetNearPlane(float nearPlane) { m_NearPlane = nearPlane; UpdateViewProjection(); }
         inline void SetFarPlane(float farPlane) { m_FarPlane = farPlane; UpdateViewProjection(); }

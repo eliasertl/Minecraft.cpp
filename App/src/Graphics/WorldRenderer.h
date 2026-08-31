@@ -17,8 +17,8 @@ namespace Minecraft::Graphics
         WorldRenderer (Data::World& world, GraphicsContext& graphicsContext, const BlockAtlas& blockAtlas);
         ~WorldRenderer();
 
-        void Render(wgpu::RenderPassEncoder& encoder);
-        void RenderWireframe(wgpu::RenderPassEncoder& encoder);
+        void Render(wgpu::RenderPassEncoder& encoder, const glm::vec3 &cameraPosition);
+        void RenderWireframe(wgpu::RenderPassEncoder& encoder, const glm::vec3 &cameraPosition);
     
     private:
         void CheckChunkRenderers();

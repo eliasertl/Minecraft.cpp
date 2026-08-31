@@ -24,7 +24,7 @@ namespace Minecraft::Graphics
         TerrainRenderer(GraphicsContext& graphicsContext, wgpu::Buffer cameraUniformBuffer, const BlockAtlas& blockAtlas);
         ~TerrainRenderer();
 
-        void Render(WorldRenderer* renderer, wgpu::RenderPassEncoder encoder);
+        void Render(WorldRenderer* renderer, wgpu::RenderPassEncoder encoder, const glm::vec3 &cameraPosition);
 
     private:
         void InitPipeline();

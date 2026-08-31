@@ -162,13 +162,13 @@ namespace Minecraft::Graphics
         }
     }
 
-    void WireframeRenderer::Render(WorldRenderer* renderer, wgpu::RenderPassEncoder encoder)
+    void WireframeRenderer::Render(WorldRenderer* renderer, wgpu::RenderPassEncoder encoder, const glm::vec3 &cameraPosition)
     {
         ZoneScoped;
         encoder.PushDebugGroup("WireframeRenderer::Render");
         encoder.SetPipeline(m_RenderPipeline);
         encoder.SetBindGroup(0, m_BindGroup);
-        renderer->RenderWireframe(encoder);
+        renderer->RenderWireframe(encoder, cameraPosition);
         encoder.PopDebugGroup();
     }
 }

@@ -292,10 +292,10 @@ namespace Minecraft::Core
             TracyGPUZoneN(encoder, renderPassDesc, "Render Pass");
             wgpu::RenderPassEncoder renderPassEncoder = encoder.BeginRenderPass(&renderPassDesc);
 
-            m_TerrainRenderer->Render(m_WorldRenderer.get(), renderPassEncoder);
+            m_TerrainRenderer->Render(m_WorldRenderer.get(), renderPassEncoder, m_Camera->GetPosition());
             if (s_ApplicationSettings.renderWireframe)
             {
-                m_WireframeRenderer->Render(m_WorldRenderer.get(), renderPassEncoder);
+                m_WireframeRenderer->Render(m_WorldRenderer.get(), renderPassEncoder, m_Camera->GetPosition());
             }
 
             m_ImGuiContext->Render(renderPassEncoder);
