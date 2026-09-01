@@ -22,7 +22,7 @@ namespace Minecraft::Data
 
         // Chunk Positions are in chunk space (e.g. 0, 0 is the first, 1, 0 is the second, etc.)
         Block* getBlock(const glm::ivec2& chunkPosition, uint16_t x, uint16_t y, uint16_t z);
-        Block* getBlock(uint16_t x, uint16_t y, uint16_t z);
+        Block* getBlock(int32_t x, int32_t y, int32_t z);
 
         inline std::map<glm::ivec2, Chunk, IVec2Less>& getChunks() { return m_Chunks; }
         inline const std::map<glm::ivec2, Chunk, IVec2Less>& getChunks() const { return m_Chunks; }

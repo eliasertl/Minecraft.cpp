@@ -1,5 +1,6 @@
 #include "ChunkRenderer.h"
 #include "Data/BlockTypes.h"
+#include "Data/World.h"
 #include "Core/Logger.h"
 
 #include <tracy/Tracy.hpp>
@@ -159,19 +160,29 @@ namespace Minecraft::Graphics
                     if (!block || block->id == 0)
                         continue;
 
+                    int32_t xOffset = static_cast<int32_t>(x) + m_Chunk.getChunkPosition().x * Data::CHUNK_LENGTH;
+                    int32_t yOffset = static_cast<int32_t>(y);
+                    int32_t zOffset = static_cast<int32_t>(z) + m_Chunk.getChunkPosition().y * Data::CHUNK_WIDTH;
+
+                    auto world = m_Chunk.getWorld();
+
                     ActiveFaces activeFaces;
-                    if (x == 0 || !m_Chunk.getBlock(x - 1, y, z) || m_Chunk.getBlock(x - 1, y, z)->id == 0)
-                        activeFaces.left = true;
-                    if (x == Data::CHUNK_LENGTH - 1 || !m_Chunk.getBlock(x + 1, y, z) || m_Chunk.getBlock(x + 1, y, z)->id == 0)
-                        activeFaces.right = true;
-                    if (y == 0 || !m_Chunk.getBlock(x, y - 1, z) || m_Chunk.getBlock(x, y - 1, z)->id == 0)
-                        activeFaces.bottom = true;
-                    if (y == Data::CHUNK_HEIGHT - 1 || !m_Chunk.getBlock(x, y + 1, z) || m_Chunk.getBlock(x, y + 1, z)->id == 0)
-                        activeFaces.top = true;
-                    if (z == 0 || !m_Chunk.getBlock(x, y, z - 1) || m_Chunk.getBlock(x, y, z - 1)->id == 0)
-                        activeFaces.back = true;
-                    if (z == Data::CHUNK_WIDTH - 1 || !m_Chunk.getBlock(x, y, z + 1) || m_Chunk.getBlock(x, y, z + 1)->id == 0)
-                        activeFaces.front = true;
+                    {
+                        ZoneScopedN("Determine Active Faces");
+                        const Data::Block *leftNeighbor = world->getBlock(xOffset - 1, yOffset, zOffset);
+                        const Data::Block *rightNeighbor = world->getBlock(xOffset + 1, yOffset, zOffset);
+                        const Data::Block *bottomNeighbor = world->getBlock(xOffset, yOffset - 1, zOffset);
+                        const Data::Block *topNeighbor = world->getBlock(xOffset, yOffset + 1, zOffset);
+                        const Data::Block *backNeighbor = world->getBlock(xOffset, yOffset, zOffset - 1);
+                        const Data::Block *frontNeighbor = world->getBlock(xOffset, yOffset, zOffset + 1);
+
+                        activeFaces.left = leftNeighbor == nullptr || leftNeighbor->id == 0;
+                        activeFaces.right = rightNeighbor == nullptr || rightNeighbor->id == 0;
+                        activeFaces.bottom = bottomNeighbor == nullptr || bottomNeighbor->id == 0;
+                        activeFaces.top = topNeighbor == nullptr || topNeighbor->id == 0;
+                        activeFaces.back = backNeighbor == nullptr || backNeighbor->id == 0;
+                        activeFaces.front = frontNeighbor == nullptr || frontNeighbor->id == 0;
+                    }
 
                     // minus one because AIR=0
                     const Data::BlockType &blockType = Data::BlockTypes::getRegisteredBlockTypes()[block->id - 1];
@@ -195,9 +206,9 @@ namespace Minecraft::Graphics
         ChunkUniforms chunkUniforms{};
         const glm::ivec2 chunkPosition = m_Chunk.getChunkPosition();
         chunkUniforms.transform = glm::translate(glm::mat4(1.0f), glm::vec3(
-            static_cast<float>(chunkPosition.x) * Data::CHUNK_LENGTH,
-            0.0f,
-            static_cast<float>(chunkPosition.y) * Data::CHUNK_WIDTH));
+                                                                      static_cast<float>(chunkPosition.x) * Data::CHUNK_LENGTH,
+                                                                      0.0f,
+                                                                      static_cast<float>(chunkPosition.y) * Data::CHUNK_WIDTH));
 
         m_GraphicsContext.GetQueue().WriteBuffer(m_VertexBuffer, 0, vertices.data(), m_VertexCount * sizeof(TerrainVertex));
         m_GraphicsContext.GetQueue().WriteBuffer(m_IndexBuffer, 0, indices.data(), m_IndexCount * sizeof(uint32_t));
@@ -214,6 +225,7 @@ namespace Minecraft::Graphics
                                    BlockAtlasCoord atlasCoord,
                                    ActiveFaces activeFaces)
     {
+        ZoneScoped;
         const float minX = static_cast<float>(x);
         const float minY = static_cast<float>(y);
         const float minZ = static_cast<float>(z);
@@ -326,6 +338,7 @@ namespace Minecraft::Graphics
                                           uint32_t faceBase,
                                           bool invertWindingOrder)
     {
+        ZoneScoped;
         if (invertWindingOrder)
         {
             indices.push_back(faceBase + 0);

@@ -14,6 +14,8 @@ namespace Minecraft::Data
     constexpr uint16_t CHUNK_WIDTH = 16;
     constexpr uint16_t CHUNK_HEIGHT = 256;
 
+    struct World;
+
     struct Block
     {
         BlockID id;
@@ -38,11 +40,13 @@ namespace Minecraft::Data
         operator bool() const { return m_Blocks != nullptr; }
         operator Block*() { return m_Blocks; }
 
-        
+        World *getWorld() const { return m_World; }
 
     private:
         // position of the chunk in chunks, not blocks
         glm::ivec2 m_Position = {0, 0};
+        World *m_World = nullptr;
+
         Block *m_Blocks;
         bool m_IsDirty;
 
