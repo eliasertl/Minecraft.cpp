@@ -1,5 +1,7 @@
 #include "World.h"
 
+#include <tracy/Tracy.hpp>
+
 namespace Minecraft::Data
 {
     World::World()
@@ -12,6 +14,7 @@ namespace Minecraft::Data
 
     void World::addChunk(const Chunk& chunk, const glm::ivec2& position)
     {
+        ZoneScoped;
         Chunk storedChunk = chunk;
         storedChunk.m_Position = position;
         storedChunk.m_World = this;
@@ -20,6 +23,7 @@ namespace Minecraft::Data
 
     void World::addEmptyChunk(const glm::ivec2& position)
     {
+        ZoneScoped;
         Chunk chunk = Chunk();
         chunk.m_Position = position;
         chunk.m_World = this;
@@ -33,6 +37,7 @@ namespace Minecraft::Data
 
     bool World::removeChunk(const glm::ivec2& position)
     {
+        ZoneScoped;
         auto it = m_Chunks.find(position);
         if (it != m_Chunks.end())
         {

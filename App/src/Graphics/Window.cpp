@@ -15,8 +15,10 @@ namespace Minecraft::Graphics
 
     Window::Window(WindowProps props)
     {
+        ZoneScoped;
         if (!isGlfwInitialized)
         {
+            ZoneScopedN("Initialize GLFW");
             LOG_INFO("Initializing GLFW");
             if (!glfwInit())
             {
@@ -42,6 +44,7 @@ namespace Minecraft::Graphics
 
     Window::~Window()
     {
+        ZoneScoped;
         LOG_INFO("Destroying Window");
         glfwDestroyWindow(m_Window);
         glfwTerminate();

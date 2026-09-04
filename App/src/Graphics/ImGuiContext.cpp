@@ -10,6 +10,7 @@ namespace Minecraft::Graphics
 {
     ImGuiContext::ImGuiContext(Window &window, wgpu::Device device, wgpu::Queue queue, wgpu::TextureFormat surfaceFormat, wgpu::TextureFormat depthStencilFormat)
     {
+        ZoneScoped;
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();
         ImGuiIO &io = ImGui::GetIO();
@@ -43,6 +44,7 @@ namespace Minecraft::Graphics
 
     ImGuiContext::~ImGuiContext()
     {
+        ZoneScoped;
         ImGui_ImplWGPU_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();

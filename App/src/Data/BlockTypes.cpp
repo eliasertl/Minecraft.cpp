@@ -2,6 +2,7 @@
 #include "Core/Logger.h"
 
 #include <exception>
+#include <tracy/Tracy.hpp>
 
 namespace Minecraft::Data
 {
@@ -34,6 +35,7 @@ namespace Minecraft::Data
 
     void BlockTypes::registerBlockType(const BlockType& blockType)
     {
+        ZoneScoped;
         if(s_isRegistrationFinished)
         {
             LOG_ERROR("Cannot register block types after registration is finished.");

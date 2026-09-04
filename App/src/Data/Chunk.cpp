@@ -50,7 +50,6 @@ namespace Minecraft::Data
 
     Block* Chunk::getBlock(uint16_t x, uint16_t y, uint16_t z)
     {
-        ZoneScoped;
         #ifdef MINECRAFT_CHUNK_USE_BOUNDS_CHECK
         if (x >= CHUNK_LENGTH || y >= CHUNK_HEIGHT || z >= CHUNK_WIDTH)
             return nullptr;

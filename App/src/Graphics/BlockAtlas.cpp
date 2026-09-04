@@ -5,16 +5,28 @@
 #include <stb_image.h>
 #include <algorithm>
 
+#include <tracy/Tracy.hpp>
 namespace Minecraft::Graphics
 {
     BlockAtlas::BlockAtlas(GraphicsContext &context)
         : m_Context(context)
     {
+        ZoneScoped;
         CreateErrorTexture();
     }
 
     BlockAtlas::~BlockAtlas()
     {
+        ZoneScoped;
+        m_AtlasTexture.Destroy();
+        m_AtlasTextureView = nullptr;
+        m_AtlasSampler = nullptr;
+
+        for (auto &textureInfo : m_BlockTextureInfos)
+        {
+            if (textureInfo.data)
+                stbi_image_free(textureInfo.data);
+        }
     }
 
     void BlockAtlas::Finalize()
@@ -25,6 +37,7 @@ namespace Minecraft::Graphics
     // Based on https://lisyarus.github.io/blog/posts/texture-packing.html
     void BlockAtlas::CreateAtlasTexture()
     {
+        ZoneScoped;
         // Generate cpu side texture atlas
         LOG_INFO("Creating block texture atlas");
         if (m_BlockTextureInfos.empty())
@@ -310,6 +323,7 @@ namespace Minecraft::Graphics
 
     BlockAtlasID BlockAtlas::RegisterBlockTexture(const std::string &texturePath)
     {
+        ZoneScoped;
         BlockTextureInfo textureInfo;
         textureInfo.path = texturePath;
 
@@ -334,6 +348,7 @@ namespace Minecraft::Graphics
 
     void BlockAtlas::CreateErrorTexture()
     {
+        ZoneScoped;
         static std::vector<uint8_t> checkerboardData;
         BlockTextureInfo errorTexture;
         errorTexture.width = 16;

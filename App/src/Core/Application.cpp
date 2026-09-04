@@ -17,15 +17,15 @@ namespace Minecraft::Core
         bool renderWireframe = false;
     };
 
-    const int TestChunkGenerationSize = 5;
-    const int TestChunkGenerationStartPoint = -2;
-    const int TestChunkGenerationEndPoint = TestChunkGenerationStartPoint + TestChunkGenerationSize - 1;
+    const int TestChunkGenerationStartPoint = -3;
+    const int TestChunkGenerationEndPoint = 3;
 
     static ApplicationSettings s_ApplicationSettings;
     Application *Application::s_Instance = nullptr;
 
     Application::Application()
     {
+        ZoneScoped;
         s_Instance = this;
         Log::Init();
         LOG_INFO("Creating Application");
@@ -89,11 +89,13 @@ namespace Minecraft::Core
         
         m_TerrainRenderer = CreateScope<Graphics::TerrainRenderer>(*m_GraphicsContext, m_CameraUniformBuffer, *m_BlockAtlas);
         m_WireframeRenderer = CreateScope<Graphics::WireframeRenderer>(*m_GraphicsContext, m_CameraUniformBuffer);
+
+        FrameMark;
     }
 
     void Application::SetTestChunksRandom()
     {
-        // TODO: Clean Up
+        ZoneScoped;
         auto gen = std::bind(std::uniform_int_distribution<>(0, 4), std::default_random_engine());
         auto topgen = std::bind(std::uniform_int_distribution<>(0, 5), std::default_random_engine());
         for (int i = TestChunkGenerationStartPoint; i < TestChunkGenerationEndPoint; i++)
@@ -121,6 +123,7 @@ namespace Minecraft::Core
 
     void Application::SetTestChunksFlat()
     {
+        ZoneScoped;
         for (int i = TestChunkGenerationStartPoint; i < TestChunkGenerationEndPoint; i++)
         {
             for (int j = TestChunkGenerationStartPoint; j < TestChunkGenerationEndPoint; j++)
@@ -146,6 +149,7 @@ namespace Minecraft::Core
 
     void Application::SetTestChunksEmpty()
     {
+        ZoneScoped;
         for (int i = TestChunkGenerationStartPoint; i < TestChunkGenerationEndPoint; i++)
         {
             for (int j = TestChunkGenerationStartPoint; j < TestChunkGenerationEndPoint; j++)
@@ -168,6 +172,7 @@ namespace Minecraft::Core
 
     void Application::SetTestChunksFull()
     {
+        ZoneScoped;
         for (int i = TestChunkGenerationStartPoint; i < TestChunkGenerationEndPoint; i++)
         {
             for (int j = TestChunkGenerationStartPoint; j < TestChunkGenerationEndPoint; j++)
@@ -195,6 +200,7 @@ namespace Minecraft::Core
 
     Application::~Application()
     {
+        ZoneScoped;
         LOG_INFO("Shutting down Application");
         m_BlockAtlas.release();
         m_World.release();
@@ -235,7 +241,7 @@ namespace Minecraft::Core
         ImGui::Text("Registered Block Types: %d", Data::BlockTypes::getRegisteredBlockTypes().size());
         ImGui::Text("Atlas Size: %dx%d", m_BlockAtlas->GetWidth(), m_BlockAtlas->GetHeight());
         glm::vec2 aspectAdjustedSize = glm::vec2(256.0f, 256.0f * (static_cast<float>(m_BlockAtlas->GetHeight()) / static_cast<float>(m_BlockAtlas->GetWidth())));
-        ImGui::Image(reinterpret_cast<ImTextureID>(m_BlockAtlas->GetTextureView().Get()), {aspectAdjustedSize.x, 1.0f - aspectAdjustedSize.y});
+        ImGui::Image(reinterpret_cast<ImTextureID>(m_BlockAtlas->GetTextureView().Get()), {aspectAdjustedSize.x, aspectAdjustedSize.y}, {0, 1}, {1, 0});
 
         ImGui::SeparatorText("Controls");
         ImGui::Checkbox("Render Wireframe", &s_ApplicationSettings.renderWireframe);
