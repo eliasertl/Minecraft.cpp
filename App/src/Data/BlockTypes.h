@@ -4,6 +4,8 @@
 #include <vector>
 
 #include "Graphics/BlockAtlas.h"
+#include "Graphics/BlockModel.h"
+#include "Common/Memory.h"
 
 namespace Minecraft::Data
 {
@@ -11,7 +13,7 @@ namespace Minecraft::Data
     {
         std::string name = "Unknown";
         std::string id = "default:unknown";
-        Graphics::BlockAtlasID textureId = 0;
+        Ref<Graphics::BlockModel> model = CreateRef<Graphics::BlockModel>();
     };
 
     class BlockTypes

@@ -51,12 +51,21 @@ namespace Minecraft::Core
         Graphics::BlockAtlasID cobblestoneTextureId = m_BlockAtlas->RegisterBlockTexture("assets/textures/cobblestone.png");
         Graphics::BlockAtlasID dirtTextureId = m_BlockAtlas->RegisterBlockTexture("assets/textures/dirt.png");
         Graphics::BlockAtlasID planksTextureId = m_BlockAtlas->RegisterBlockTexture("assets/textures/planks.png");
-        Graphics::BlockAtlasID testTextureId = m_BlockAtlas->RegisterBlockTexture("assets/textures/test.png");
+        Graphics::BlockAtlasID stoneTextureId = m_BlockAtlas->RegisterBlockTexture("assets/textures/stone.png");
+        Graphics::BlockAtlasID grassTopTextureId = m_BlockAtlas->RegisterBlockTexture("assets/textures/grass_top.png");
+        Graphics::BlockAtlasID grassSideTextureId = m_BlockAtlas->RegisterBlockTexture("assets/textures/grass_side.png");
 
-        Data::BlockTypes::registerBlockType({"Cobblestone", "default:cobblestone", cobblestoneTextureId});
-        Data::BlockTypes::registerBlockType({"Dirt", "default:dirt", dirtTextureId});
-        Data::BlockTypes::registerBlockType({"Planks", "default:planks", planksTextureId});
-        Data::BlockTypes::registerBlockType({"Test Block", "default:test", testTextureId});
+        auto cobblestoneModel = CreateRef<Graphics::CrossBlockModel>(cobblestoneTextureId);
+        auto dirtModel = CreateRef<Graphics::CrossBlockModel>(dirtTextureId);
+        auto planksModel = CreateRef<Graphics::CrossBlockModel>(planksTextureId);
+        auto stoneModel = CreateRef<Graphics::CrossBlockModel>(stoneTextureId);
+        auto grassModel = CreateRef<Graphics::CubeBlockModel>(grassSideTextureId, grassTopTextureId, dirtTextureId);
+
+        Data::BlockTypes::registerBlockType({"Cobblestone", "default:cobblestone", cobblestoneModel}); // 1
+        Data::BlockTypes::registerBlockType({"Dirt", "default:dirt", dirtModel}); // 2
+        Data::BlockTypes::registerBlockType({"Planks", "default:planks", planksModel}); // 3
+        Data::BlockTypes::registerBlockType({"Stone", "default:stone", stoneModel}); // 4
+        Data::BlockTypes::registerBlockType({"Grass", "default:grass", grassModel}); // 5
         Data::BlockTypes::finishRegistration();
         m_BlockAtlas->Finalize();
 
@@ -86,6 +95,7 @@ namespace Minecraft::Core
     {
         // TODO: Clean Up
         auto gen = std::bind(std::uniform_int_distribution<>(0, 4), std::default_random_engine());
+        auto topgen = std::bind(std::uniform_int_distribution<>(0, 5), std::default_random_engine());
         for (int i = TestChunkGenerationStartPoint; i < TestChunkGenerationEndPoint; i++)
         {
             for (int j = TestChunkGenerationStartPoint; j < TestChunkGenerationEndPoint; j++)
@@ -98,7 +108,10 @@ namespace Minecraft::Core
                     {
                         for (uint16_t z = 0; z < Data::CHUNK_WIDTH; z++)
                         {
-                            chunk->setBlock(x, y, z, gen(), 0);
+                            if(y == Data::CHUNK_HEIGHT - 1)
+                                chunk->setBlock(x, y, z, topgen(), 0);
+                            else
+                                chunk->setBlock(x, y, z, gen(), 0);
                         }
                     }
                 }
@@ -168,9 +181,11 @@ namespace Minecraft::Core
                         for (uint16_t z = 0; z < Data::CHUNK_WIDTH; z++)
                         {
                             if (y == Data::CHUNK_HEIGHT - 1)
-                                chunk->setBlock(x, y, z, 2, 0);
+                                chunk->setBlock(x, y, z, 5, 0); // Grass
+                            else if (y >= Data::CHUNK_HEIGHT - 6)
+                                chunk->setBlock(x, y, z, 2, 0); // Dirt
                             else
-                                chunk->setBlock(x, y, z, 1, 0);
+                                chunk->setBlock(x, y, z, 4, 0); // Stone
                         }
                     }
                 }
@@ -220,7 +235,7 @@ namespace Minecraft::Core
         ImGui::Text("Registered Block Types: %d", Data::BlockTypes::getRegisteredBlockTypes().size());
         ImGui::Text("Atlas Size: %dx%d", m_BlockAtlas->GetWidth(), m_BlockAtlas->GetHeight());
         glm::vec2 aspectAdjustedSize = glm::vec2(256.0f, 256.0f * (static_cast<float>(m_BlockAtlas->GetHeight()) / static_cast<float>(m_BlockAtlas->GetWidth())));
-        ImGui::Image(reinterpret_cast<ImTextureID>(m_BlockAtlas->GetTextureView().Get()), {aspectAdjustedSize.x, aspectAdjustedSize.y});
+        ImGui::Image(reinterpret_cast<ImTextureID>(m_BlockAtlas->GetTextureView().Get()), {aspectAdjustedSize.x, 1.0f - aspectAdjustedSize.y});
 
         ImGui::SeparatorText("Controls");
         ImGui::Checkbox("Render Wireframe", &s_ApplicationSettings.renderWireframe);

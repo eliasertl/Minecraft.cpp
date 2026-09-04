@@ -186,7 +186,17 @@ namespace Minecraft::Graphics
 
                     // minus one because AIR=0
                     const Data::BlockType &blockType = Data::BlockTypes::getRegisteredBlockTypes()[block->id - 1];
-                    BlockAtlasCoord atlasCoord = m_BlockAtlas.GetBlockTextureCoord(blockType.textureId);
+                    CubeUVs atlasCoord;
+                    BlockAtlasCoord topCoords = m_BlockAtlas.GetBlockTextureCoord(blockType.model->getTopTextureId());
+                    BlockAtlasCoord bottomCoords = m_BlockAtlas.GetBlockTextureCoord(blockType.model->getBottomTextureId());
+                    BlockAtlasCoord sideCoords = m_BlockAtlas.GetBlockTextureCoord(blockType.model->getSideTextureId());
+
+                    atlasCoord.topMax = topCoords.uvMax;
+                    atlasCoord.topMin = topCoords.uvMin;
+                    atlasCoord.bottomMax = bottomCoords.uvMax;
+                    atlasCoord.bottomMin = bottomCoords.uvMin;
+                    atlasCoord.sideMax = sideCoords.uvMax;
+                    atlasCoord.sideMin = sideCoords.uvMin;
 
                     CreateCube(vertices, indices, wireframeVertices, wireframeIndices, x, y, z, atlasCoord, activeFaces);
                 }
@@ -222,7 +232,7 @@ namespace Minecraft::Graphics
                                    std::vector<WireframeVertex> &wireframeVertices,
                                    std::vector<uint32_t> &wireframeIndices,
                                    uint32_t x, uint32_t y, uint32_t z,
-                                   BlockAtlasCoord atlasCoord,
+                                   CubeUVs uvs,
                                    ActiveFaces activeFaces)
     {
         ZoneScoped;
@@ -239,10 +249,10 @@ namespace Minecraft::Graphics
         // Front (+Z)
         if (activeFaces.front)
         {
-            vertices.push_back({{maxX, maxY, maxZ}, {0, 0, 1}, atlasCoord.uvMax});
-            vertices.push_back({{minX, minY, maxZ}, {0, 0, 1}, atlasCoord.uvMin});
-            vertices.push_back({{maxX, minY, maxZ}, {0, 0, 1}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
-            vertices.push_back({{minX, maxY, maxZ}, {0, 0, 1}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
+            vertices.push_back({{maxX, maxY, maxZ}, {0, 0, 1}, uvs.sideMax});
+            vertices.push_back({{minX, minY, maxZ}, {0, 0, 1}, uvs.sideMin});
+            vertices.push_back({{maxX, minY, maxZ}, {0, 0, 1}, {uvs.sideMax.x, uvs.sideMin.y}});
+            vertices.push_back({{minX, maxY, maxZ}, {0, 0, 1}, {uvs.sideMin.x, uvs.sideMax.y}});
 
             wireframeVertices.push_back({{maxX, maxY, maxZ}, color});
             wireframeVertices.push_back({{minX, minY, maxZ}, color});
@@ -255,10 +265,10 @@ namespace Minecraft::Graphics
         // Back (-Z)
         if (activeFaces.back)
         {
-            vertices.push_back({{minX, maxY, minZ}, {0, 0, -1}, atlasCoord.uvMax});
-            vertices.push_back({{maxX, minY, minZ}, {0, 0, -1}, atlasCoord.uvMin});
-            vertices.push_back({{minX, minY, minZ}, {0, 0, -1}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
-            vertices.push_back({{maxX, maxY, minZ}, {0, 0, -1}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
+            vertices.push_back({{minX, maxY, minZ}, {0, 0, -1}, uvs.sideMax});
+            vertices.push_back({{maxX, minY, minZ}, {0, 0, -1}, uvs.sideMin});
+            vertices.push_back({{minX, minY, minZ}, {0, 0, -1}, {uvs.sideMax.x, uvs.sideMin.y}});
+            vertices.push_back({{maxX, maxY, minZ}, {0, 0, -1}, {uvs.sideMin.x, uvs.sideMax.y}});
 
             wireframeVertices.push_back({{minX, maxY, minZ}, color});
             wireframeVertices.push_back({{maxX, minY, minZ}, color});
@@ -271,10 +281,10 @@ namespace Minecraft::Graphics
         // Right (+X)
         if (activeFaces.right)
         {
-            vertices.push_back({{maxX, maxY, maxZ}, {1, 0, 0}, atlasCoord.uvMax});
-            vertices.push_back({{maxX, minY, minZ}, {1, 0, 0}, atlasCoord.uvMin});
-            vertices.push_back({{maxX, minY, maxZ}, {1, 0, 0}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
-            vertices.push_back({{maxX, maxY, minZ}, {1, 0, 0}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
+            vertices.push_back({{maxX, maxY, maxZ}, {1, 0, 0}, uvs.sideMax});
+            vertices.push_back({{maxX, minY, minZ}, {1, 0, 0}, uvs.sideMin});
+            vertices.push_back({{maxX, minY, maxZ}, {1, 0, 0}, {uvs.sideMax.x, uvs.sideMin.y}});
+            vertices.push_back({{maxX, maxY, minZ}, {1, 0, 0}, {uvs.sideMin.x, uvs.sideMax.y}});
 
             wireframeVertices.push_back({{maxX, maxY, maxZ}, color});
             wireframeVertices.push_back({{maxX, minY, minZ}, color});
@@ -287,10 +297,10 @@ namespace Minecraft::Graphics
         // Left (-X)
         if (activeFaces.left)
         {
-            vertices.push_back({{minX, maxY, maxZ}, {-1, 0, 0}, atlasCoord.uvMax});
-            vertices.push_back({{minX, minY, minZ}, {-1, 0, 0}, atlasCoord.uvMin});
-            vertices.push_back({{minX, minY, maxZ}, {-1, 0, 0}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
-            vertices.push_back({{minX, maxY, minZ}, {-1, 0, 0}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
+            vertices.push_back({{minX, maxY, maxZ}, {-1, 0, 0}, uvs.sideMax});
+            vertices.push_back({{minX, minY, minZ}, {-1, 0, 0}, uvs.sideMin});
+            vertices.push_back({{minX, minY, maxZ}, {-1, 0, 0}, {uvs.sideMax.x, uvs.sideMin.y}});
+            vertices.push_back({{minX, maxY, minZ}, {-1, 0, 0}, {uvs.sideMin.x, uvs.sideMax.y}});
 
             wireframeVertices.push_back({{minX, maxY, maxZ}, color});
             wireframeVertices.push_back({{minX, minY, minZ}, color});
@@ -303,10 +313,10 @@ namespace Minecraft::Graphics
         // Top (+Y)
         if (activeFaces.top)
         {
-            vertices.push_back({{maxX, maxY, minZ}, {0, 1, 0}, atlasCoord.uvMax});
-            vertices.push_back({{minX, maxY, maxZ}, {0, 1, 0}, atlasCoord.uvMin});
-            vertices.push_back({{maxX, maxY, maxZ}, {0, 1, 0}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
-            vertices.push_back({{minX, maxY, minZ}, {0, 1, 0}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
+            vertices.push_back({{maxX, maxY, minZ}, {0, 1, 0}, uvs.topMax});
+            vertices.push_back({{minX, maxY, maxZ}, {0, 1, 0}, uvs.topMin});
+            vertices.push_back({{maxX, maxY, maxZ}, {0, 1, 0}, {uvs.topMax.x, uvs.topMin.y}});
+            vertices.push_back({{minX, maxY, minZ}, {0, 1, 0}, {uvs.topMin.x, uvs.topMax.y}});
 
             wireframeVertices.push_back({{maxX, maxY, minZ}, color});
             wireframeVertices.push_back({{minX, maxY, maxZ}, color});
@@ -319,10 +329,10 @@ namespace Minecraft::Graphics
         // Bottom (-Y)
         if (activeFaces.bottom)
         {
-            vertices.push_back({{maxX, minY, maxZ}, {0, -1, 0}, atlasCoord.uvMax});
-            vertices.push_back({{minX, minY, minZ}, {0, -1, 0}, atlasCoord.uvMin});
-            vertices.push_back({{maxX, minY, minZ}, {0, -1, 0}, {atlasCoord.uvMax.x, atlasCoord.uvMin.y}});
-            vertices.push_back({{minX, minY, maxZ}, {0, -1, 0}, {atlasCoord.uvMin.x, atlasCoord.uvMax.y}});
+            vertices.push_back({{maxX, minY, maxZ}, {0, -1, 0}, uvs.bottomMax});
+            vertices.push_back({{minX, minY, minZ}, {0, -1, 0}, uvs.bottomMin});
+            vertices.push_back({{maxX, minY, minZ}, {0, -1, 0}, {uvs.bottomMax.x, uvs.bottomMin.y}});
+            vertices.push_back({{minX, minY, maxZ}, {0, -1, 0}, {uvs.bottomMin.x, uvs.bottomMax.y}});
 
             wireframeVertices.push_back({{maxX, minY, maxZ}, color});
             wireframeVertices.push_back({{minX, minY, minZ}, color});

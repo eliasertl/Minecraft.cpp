@@ -42,13 +42,23 @@ namespace Minecraft::Graphics
             bool bottom = false;
         };
 
+        struct CubeUVs
+        {
+            glm::vec2 topMax;
+            glm::vec2 topMin;
+            glm::vec2 bottomMax;
+            glm::vec2 bottomMin;
+            glm::vec2 sideMax;
+            glm::vec2 sideMin;
+        };
+
         void BuildMesh();
         void CreateCube(std::vector<TerrainVertex> &vertices,
                         std::vector<uint32_t> &indices,
                         std::vector<WireframeVertex> &wireframeVertices,
                         std::vector<uint32_t> &wireFrameIndices,
                         uint32_t x, uint32_t y, uint32_t z,
-                        BlockAtlasCoord uvCoord,
+                        CubeUVs uvCoord,
                         ActiveFaces activeFaces = ActiveFaces());
 
         void AppendQuadIndices(std::vector<uint32_t> &indices,
