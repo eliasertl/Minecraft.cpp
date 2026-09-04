@@ -16,7 +16,7 @@ namespace Minecraft::Graphics
         glm::vec2 uv;
     };
 
-    struct WorldRenderer;
+    struct TerrainRenderable;
 
     class TerrainRenderer
     {
@@ -24,7 +24,7 @@ namespace Minecraft::Graphics
         TerrainRenderer(GraphicsContext& graphicsContext, wgpu::Buffer cameraUniformBuffer, const BlockAtlas& blockAtlas);
         ~TerrainRenderer();
 
-        void Render(WorldRenderer* renderer, wgpu::RenderPassEncoder encoder, const glm::vec3 &cameraPosition);
+        void Render(TerrainRenderable* renderer, wgpu::RenderPassEncoder encoder, const glm::vec3 &cameraPosition);
 
     private:
         void InitPipeline();

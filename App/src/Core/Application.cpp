@@ -85,7 +85,7 @@ namespace Minecraft::Core
         }
         SetTestChunksRandom();
 
-        m_WorldRenderer = CreateScope<Graphics::WorldRenderer>(*m_World, *m_GraphicsContext, *m_BlockAtlas);
+        m_WorldRenderable = CreateScope<Graphics::WorldRenderable>(*m_World, *m_GraphicsContext, *m_BlockAtlas);
         
         m_TerrainRenderer = CreateScope<Graphics::TerrainRenderer>(*m_GraphicsContext, m_CameraUniformBuffer, *m_BlockAtlas);
         m_WireframeRenderer = CreateScope<Graphics::WireframeRenderer>(*m_GraphicsContext, m_CameraUniformBuffer);
@@ -307,10 +307,10 @@ namespace Minecraft::Core
             TracyGPUZoneN(encoder, renderPassDesc, "Render Pass");
             wgpu::RenderPassEncoder renderPassEncoder = encoder.BeginRenderPass(&renderPassDesc);
 
-            m_TerrainRenderer->Render(m_WorldRenderer.get(), renderPassEncoder, m_Camera->GetPosition());
+            m_TerrainRenderer->Render(m_WorldRenderable.get(), renderPassEncoder, m_Camera->GetPosition());
             if (s_ApplicationSettings.renderWireframe)
             {
-                m_WireframeRenderer->Render(m_WorldRenderer.get(), renderPassEncoder, m_Camera->GetPosition());
+                m_WireframeRenderer->Render(m_WorldRenderable.get(), renderPassEncoder, m_Camera->GetPosition());
             }
 
             m_ImGuiContext->Render(renderPassEncoder);

@@ -1,4 +1,4 @@
-#include "WorldRenderer.h"
+#include "WorldRenderable.h"
 #include "Core/Logger.h"
 
 #define GLM_ENABLE_EXPERIMENTAL
@@ -9,32 +9,32 @@
 namespace Minecraft::Graphics
 {
 
-    WorldRenderer::WorldRenderer(Data::World &world, GraphicsContext &graphicsContext, const BlockAtlas &blockAtlas)
+    WorldRenderable::WorldRenderable(Data::World &world, GraphicsContext &graphicsContext, const BlockAtlas &blockAtlas)
         : m_World(world), m_GraphicsContext(graphicsContext), m_BlockAtlas(blockAtlas)
     {
     }
 
-    WorldRenderer::~WorldRenderer()
+    WorldRenderable::~WorldRenderable()
     {
     }
 
-    void WorldRenderer::CheckChunkRenderers()
+    void WorldRenderable::CheckChunkRenderables()
     {
         // Add missing
         for (auto &[position, chunk] : m_World.getChunks())
         {
-            if (m_ChunkRenderers.find(position) == m_ChunkRenderers.end())
+            if (m_ChunkRenderables.find(position) == m_ChunkRenderables.end())
             {
-                m_ChunkRenderers.emplace(position, CreateScope<ChunkRenderer>(chunk, m_GraphicsContext, m_BlockAtlas));
+                m_ChunkRenderables.emplace(position, CreateScope<ChunkRenderable>(chunk, m_GraphicsContext, m_BlockAtlas));
             }
         }
 
         // Remove extra
-        for (auto it = m_ChunkRenderers.begin(); it != m_ChunkRenderers.end();)
+        for (auto it = m_ChunkRenderables.begin(); it != m_ChunkRenderables.end();)
         {
             if (m_World.getChunks().find(it->first) == m_World.getChunks().end())
             {
-                it = m_ChunkRenderers.erase(it);
+                it = m_ChunkRenderables.erase(it);
             }
             else
             {
@@ -43,16 +43,16 @@ namespace Minecraft::Graphics
         }
     }
 
-    void WorldRenderer::Render(wgpu::RenderPassEncoder &encoder, const glm::vec3 &cameraPosition)
+    void WorldRenderable::Render(wgpu::RenderPassEncoder &encoder, glm::vec3 cameraPosition)
     {
-        CheckChunkRenderers();
+        CheckChunkRenderables();
 
-        std::vector<std::pair<glm::ivec2, ChunkRenderer *>> sortedChunks;
-        sortedChunks.reserve(m_ChunkRenderers.size());
+        std::vector<std::pair<glm::ivec2, ChunkRenderable *>> sortedChunks;
+        sortedChunks.reserve(m_ChunkRenderables.size());
 
-        for (auto &[position, chunkRenderer] : m_ChunkRenderers)
+        for (auto &[position, ChunkRenderable] : m_ChunkRenderables)
         {
-            sortedChunks.emplace_back(position, chunkRenderer.get());
+            sortedChunks.emplace_back(position, ChunkRenderable.get());
         }
 
         std::sort(sortedChunks.begin(), sortedChunks.end(),
@@ -74,22 +74,22 @@ namespace Minecraft::Graphics
                       return distanceA < distanceB;
                   });
 
-        for (auto &[position, chunkRenderer] : sortedChunks)
+        for (auto &[position, ChunkRenderable] : sortedChunks)
         {
-            chunkRenderer->Render(encoder);
+            ChunkRenderable->Render(encoder, cameraPosition);
         }
     }
 
-    void WorldRenderer::RenderWireframe(wgpu::RenderPassEncoder &encoder, const glm::vec3 &cameraPosition)
+    void WorldRenderable::RenderWireframe(wgpu::RenderPassEncoder &encoder, glm::vec3 cameraPosition)
     {
-        CheckChunkRenderers();
+        CheckChunkRenderables();
 
-        std::vector<std::pair<glm::ivec2, ChunkRenderer *>> sortedChunks;
-        sortedChunks.reserve(m_ChunkRenderers.size());
+        std::vector<std::pair<glm::ivec2, ChunkRenderable *>> sortedChunks;
+        sortedChunks.reserve(m_ChunkRenderables.size());
 
-        for (auto &[position, chunkRenderer] : m_ChunkRenderers)
+        for (auto &[position, ChunkRenderable] : m_ChunkRenderables)
         {
-            sortedChunks.emplace_back(position, chunkRenderer.get());
+            sortedChunks.emplace_back(position, ChunkRenderable.get());
         }
 
         std::sort(sortedChunks.begin(), sortedChunks.end(),
@@ -111,9 +111,9 @@ namespace Minecraft::Graphics
                       return distanceA < distanceB;
                   });
 
-        for (auto &[position, chunkRenderer] : sortedChunks)
+        for (auto &[position, ChunkRenderable] : sortedChunks)
         {
-            chunkRenderer->RenderWireframe(encoder);
+            ChunkRenderable->RenderWireframe(encoder, cameraPosition);
         }
     }
 }

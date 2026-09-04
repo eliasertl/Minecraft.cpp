@@ -4,6 +4,7 @@
 #include "Data/Chunk.h"
 #include "Graphics/GraphicsContext.h"
 #include "Graphics/BlockAtlas.h"
+#include "Graphics/Renderable.h"
 #include "Graphics/ShaderSystems/TerrainRenderer.h"
 #include "Graphics/ShaderSystems/WireframeRenderer.h"
 
@@ -13,19 +14,19 @@
 
 namespace Minecraft::Graphics
 {
-    class ChunkRenderer
+    class ChunkRenderable : public TerrainRenderable, public WireframeRenderable
     {
     public:
-        ChunkRenderer(Data::Chunk &chunk, GraphicsContext &graphicsContext, const BlockAtlas &blockAtlas);
-        ~ChunkRenderer();
+        ChunkRenderable(Data::Chunk &chunk, GraphicsContext &graphicsContext, const BlockAtlas &blockAtlas);
+        ~ChunkRenderable();
 
-        ChunkRenderer(const ChunkRenderer &) = delete;
-        ChunkRenderer &operator=(const ChunkRenderer &) = delete;
-        ChunkRenderer(ChunkRenderer &&) = delete;
-        ChunkRenderer &operator=(ChunkRenderer &&) = delete;
+        ChunkRenderable(const ChunkRenderable &) = delete;
+        ChunkRenderable &operator=(const ChunkRenderable &) = delete;
+        ChunkRenderable(ChunkRenderable &&) = delete;
+        ChunkRenderable &operator=(ChunkRenderable &&) = delete;
 
-        void Render(wgpu::RenderPassEncoder encoder);
-        void RenderWireframe(wgpu::RenderPassEncoder encoder);
+        virtual void Render(wgpu::RenderPassEncoder &renderPass, glm::vec3 cameraPosition) override;
+        virtual void RenderWireframe(wgpu::RenderPassEncoder &renderPass, glm::vec3 cameraPosition) override;
 
         struct ChunkUniforms {
             glm::mat4 transform;

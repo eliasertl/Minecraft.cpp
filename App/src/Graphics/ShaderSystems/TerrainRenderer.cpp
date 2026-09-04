@@ -2,7 +2,7 @@
 #include "Common/File.h"
 #include "Core/Application.h"
 #include "Core/Logger.h"
-#include "Graphics/WorldRenderer.h"
+#include "Graphics/Renderable.h"
 
 #include <tracy/Tracy.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -138,7 +138,7 @@ namespace Minecraft::Graphics
         chunkBindingLayouts[0].binding = 0;
         chunkBindingLayouts[0].visibility = wgpu::ShaderStage::Vertex;
         chunkBindingLayouts[0].buffer.type = wgpu::BufferBindingType::Uniform;
-        chunkBindingLayouts[0].buffer.minBindingSize = sizeof(Graphics::ChunkRenderer::ChunkUniforms);
+        chunkBindingLayouts[0].buffer.minBindingSize = sizeof(Graphics::ChunkRenderable::ChunkUniforms);
 
         wgpu::BindGroupLayoutDescriptor chunkBindGroupLayoutDesc = wgpu::BindGroupLayoutDescriptor{};
         chunkBindGroupLayoutDesc.entryCount = chunkBindingLayouts.size();
@@ -184,13 +184,13 @@ namespace Minecraft::Graphics
         }
     }
 
-    void TerrainRenderer::Render(WorldRenderer *worldRenderer, wgpu::RenderPassEncoder encoder, const glm::vec3 &cameraPosition)
+    void TerrainRenderer::Render(TerrainRenderable *renderable, wgpu::RenderPassEncoder encoder, const glm::vec3 &cameraPosition)
     {
         ZoneScoped;
         encoder.PushDebugGroup("TerrainRenderer::Render");
         encoder.SetPipeline(m_RenderPipeline);
         encoder.SetBindGroup(0, m_BindGroup);
-        worldRenderer->Render(encoder, cameraPosition);
+        renderable->Render(encoder, cameraPosition);
         encoder.PopDebugGroup();
     }
 }

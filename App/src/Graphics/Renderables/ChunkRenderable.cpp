@@ -1,4 +1,4 @@
-#include "ChunkRenderer.h"
+#include "ChunkRenderable.h"
 #include "Data/BlockTypes.h"
 #include "Data/World.h"
 #include "Core/Logger.h"
@@ -8,14 +8,14 @@
 
 namespace Minecraft::Graphics
 {
-    ChunkRenderer::ChunkRenderer(Data::Chunk &chunk, GraphicsContext &graphicsContext, const BlockAtlas &blockAtlas)
+    ChunkRenderable::ChunkRenderable(Data::Chunk &chunk, GraphicsContext &graphicsContext, const BlockAtlas &blockAtlas)
         : m_Chunk(chunk), m_GraphicsContext(graphicsContext), m_BlockAtlas(blockAtlas)
     {
         InitBuffers();
         BuildMesh();
     }
 
-    void ChunkRenderer::InitBindGroup()
+    void ChunkRenderable::InitBindGroup()
     {
         std::vector<wgpu::BindGroupLayoutEntry> chunkBindingLayouts(1);
         chunkBindingLayouts[0].binding = 0;
@@ -42,12 +42,12 @@ namespace Minecraft::Graphics
         m_ChunkBindGroup = m_GraphicsContext.GetDevice().CreateBindGroup(&bindGroupDesc);
     }
 
-    void ChunkRenderer::InitBuffers()
+    void ChunkRenderable::InitBuffers()
     {
         // Vertex Buffer
         uint32_t vertexBufferSize = (m_VertexCount > 0) ? m_VertexCount * sizeof(TerrainVertex) : 128 * sizeof(TerrainVertex);
         wgpu::BufferDescriptor vertexBufferDesc = {};
-        vertexBufferDesc.label = "[ChunkRenderer] Vertex Buffer";
+        vertexBufferDesc.label = "[ChunkRenderable] Vertex Buffer";
         vertexBufferDesc.size = vertexBufferSize;
         vertexBufferDesc.usage = wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst;
         vertexBufferDesc.mappedAtCreation = false;
@@ -57,7 +57,7 @@ namespace Minecraft::Graphics
         // Index Buffer
         uint32_t indexBufferSize = (m_IndexCount > 0) ? m_IndexCount * sizeof(uint32_t) : 128 * sizeof(uint32_t);
         wgpu::BufferDescriptor indexBufferDesc = {};
-        indexBufferDesc.label = "[ChunkRenderer] Index Buffer";
+        indexBufferDesc.label = "[ChunkRenderable] Index Buffer";
         indexBufferDesc.size = indexBufferSize;
         indexBufferDesc.usage = wgpu::BufferUsage::Index | wgpu::BufferUsage::CopyDst;
         indexBufferDesc.mappedAtCreation = false;
@@ -67,7 +67,7 @@ namespace Minecraft::Graphics
         // Wireframe Vertex Buffer
         uint32_t wireframeVertexBufferSize = (m_WireframeVertexCount > 0) ? m_WireframeVertexCount * sizeof(WireframeVertex) : 128 * sizeof(WireframeVertex);
         wgpu::BufferDescriptor wireframeVertexBufferDesc = {};
-        wireframeVertexBufferDesc.label = "[ChunkRenderer] Wireframe Vertex Buffer";
+        wireframeVertexBufferDesc.label = "[ChunkRenderable] Wireframe Vertex Buffer";
         wireframeVertexBufferDesc.size = wireframeVertexBufferSize;
         wireframeVertexBufferDesc.usage = wgpu::BufferUsage::Vertex | wgpu::BufferUsage::CopyDst;
         wireframeVertexBufferDesc.mappedAtCreation = false;
@@ -77,7 +77,7 @@ namespace Minecraft::Graphics
         // Wireframe Index Buffer
         uint32_t wireframeIndexBufferSize = (m_WireframeIndexCount > 0) ? m_WireframeIndexCount * sizeof(uint32_t) : 128 * sizeof(uint32_t);
         wgpu::BufferDescriptor wireframeIndexBufferDesc = {};
-        wireframeIndexBufferDesc.label = "[ChunkRenderer] Wireframe Index Buffer";
+        wireframeIndexBufferDesc.label = "[ChunkRenderable] Wireframe Index Buffer";
         wireframeIndexBufferDesc.size = wireframeIndexBufferSize;
         wireframeIndexBufferDesc.usage = wgpu::BufferUsage::Index | wgpu::BufferUsage::CopyDst;
         wireframeIndexBufferDesc.mappedAtCreation = false;
@@ -94,7 +94,7 @@ namespace Minecraft::Graphics
         InitBindGroup();
     }
 
-    ChunkRenderer::~ChunkRenderer()
+    ChunkRenderable::~ChunkRenderable()
     {
         m_ChunkBindGroup = nullptr;
         m_ChunkBindGroupLayout = nullptr;
@@ -105,10 +105,10 @@ namespace Minecraft::Graphics
         m_UniformBuffer.Destroy();
     }
 
-    void ChunkRenderer::Render(wgpu::RenderPassEncoder encoder)
+    void ChunkRenderable::Render(wgpu::RenderPassEncoder& encoder, glm::vec3 cameraPosition)
     {
         ZoneScoped;
-        encoder.PushDebugGroup("ChunkRenderer::Render");
+        encoder.PushDebugGroup("ChunkRenderable::Render");
         if (m_Chunk.isDirty())
         {
             BuildMesh();
@@ -121,10 +121,10 @@ namespace Minecraft::Graphics
         encoder.PopDebugGroup();
     }
 
-    void ChunkRenderer::RenderWireframe(wgpu::RenderPassEncoder encoder)
+    void ChunkRenderable::RenderWireframe(wgpu::RenderPassEncoder& encoder, glm::vec3 cameraPosition)
     {
         ZoneScoped;
-        encoder.PushDebugGroup("ChunkRenderer::RenderWireframe");
+        encoder.PushDebugGroup("ChunkRenderable::RenderWireframe");
         if (m_Chunk.isDirty())
         {
             BuildMesh();
@@ -137,7 +137,7 @@ namespace Minecraft::Graphics
         encoder.PopDebugGroup();
     }
 
-    void ChunkRenderer::BuildMesh()
+    void ChunkRenderable::BuildMesh()
     {
         ZoneScoped;
         std::vector<TerrainVertex> vertices;
@@ -227,7 +227,7 @@ namespace Minecraft::Graphics
         m_GraphicsContext.GetQueue().WriteBuffer(m_UniformBuffer, 0, &chunkUniforms, sizeof(ChunkUniforms));
     }
 
-    void ChunkRenderer::CreateCube(std::vector<TerrainVertex> &vertices,
+    void ChunkRenderable::CreateCube(std::vector<TerrainVertex> &vertices,
                                    std::vector<uint32_t> &indices,
                                    std::vector<WireframeVertex> &wireframeVertices,
                                    std::vector<uint32_t> &wireframeIndices,
@@ -343,7 +343,7 @@ namespace Minecraft::Graphics
         }
     }
 
-    void ChunkRenderer::AppendQuadIndices(std::vector<uint32_t> &indices,
+    void ChunkRenderable::AppendQuadIndices(std::vector<uint32_t> &indices,
                                           std::vector<uint32_t> &wireframeIndices,
                                           uint32_t faceBase,
                                           bool invertWindingOrder)

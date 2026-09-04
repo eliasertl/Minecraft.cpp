@@ -4,7 +4,7 @@
 #include "Graphics/Window.h"
 #include "Graphics/GraphicsContext.h"
 #include "Graphics/ImGuiContext.h"
-#include "Graphics/WorldRenderer.h"
+#include "Graphics/Renderables/WorldRenderable.h"
 #include "Graphics/ShaderSystems/TerrainRenderer.h"
 #include "Graphics/ShaderSystems/WireframeRenderer.h"
 #include "Graphics/BlockAtlas.h"
@@ -52,7 +52,7 @@ namespace Minecraft::Core
         Scope<Graphics::ImGuiContext> m_ImGuiContext;
         Scope<Data::World> m_World;
         Scope<Data::Camera> m_Camera;
-        Scope<Graphics::WorldRenderer> m_WorldRenderer;
+        Scope<Graphics::WorldRenderable> m_WorldRenderable;
         Scope<Graphics::TerrainRenderer> m_TerrainRenderer;
         Scope<Graphics::WireframeRenderer> m_WireframeRenderer;
         Scope<Graphics::BlockAtlas> m_BlockAtlas;

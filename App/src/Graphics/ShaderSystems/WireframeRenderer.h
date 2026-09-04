@@ -14,7 +14,7 @@ namespace Minecraft::Graphics
         glm::vec3 color;
     };
 
-    struct WorldRenderer;
+    struct WireframeRenderable;
 
     class WireframeRenderer
     {
@@ -22,7 +22,7 @@ namespace Minecraft::Graphics
         WireframeRenderer(GraphicsContext& graphicsContext, wgpu::Buffer cameraUniformBuffer);
         ~WireframeRenderer();
 
-        void Render(WorldRenderer* renderer, wgpu::RenderPassEncoder encoder, const glm::vec3 &cameraPosition);
+        void Render(WireframeRenderable* renderer, wgpu::RenderPassEncoder encoder, const glm::vec3 &cameraPosition);
 
     private:
         void InitPipeline();
